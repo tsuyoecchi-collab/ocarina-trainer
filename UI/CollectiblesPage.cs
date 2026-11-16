@@ -1140,22 +1140,47 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
                 ? area.Top + area.Height / 2f + (z - cal.CameraZ) * orthoScale
                 : area.Top + (z - minZ) / (maxZ - minZ) * area.Height;
 
+            Point mouse = PointToClient(Control.MousePosition);
+            string? hoverName = null;
+            float hoverX = 0, hoverY = 0;
+
             foreach ((float x, float z, bool selected, string name, string tipo, bool obtenido) in points)
             {
                 float cx = MapX(x), cy = MapZ(z);
                 DrawPin(g, cx, cy, tipo, selected, obtenido);
 
-                if (name.Length > 0)
+                bool isHover = MathF.Sqrt((mouse.X - cx) * (mouse.X - cx) + (mouse.Y - cy) * (mouse.Y - cy)) <= 12f;
+                if (isHover && name.Length > 0)
                 {
-                    using var brush = new SolidBrush(Theme.Muted);
-                    g.DrawString(name, Theme.Small, brush, cx + 9, cy - 7);
+                    hoverName = name;
+                    hoverX = cx;
+                    hoverY = cy;
+                }
+                else if (selected && name.Length > 0)
+                {
+                    DrawBadge(g, name, cx + 11, cy - 9, true);
                 }
             }
+
+            if (hoverName is not null)
+                DrawBadge(g, hoverName, hoverX + 11, hoverY - 9, false);
 
             if (LinkPosition is { } linkPos)
             {
                 DrawLinkArrow(g, MapX(linkPos.X), MapZ(linkPos.Z), LinkAngle);
             }
+        }
+
+        private static void DrawBadge(Graphics g, string text, float x, float y, bool accent)
+        {
+            SizeF sz = g.MeasureString(text, Theme.Small);
+            var rect = new RectangleF(x - 3, y - 2, sz.Width + 6, sz.Height + 4);
+            using var bg = new SolidBrush(Color.FromArgb(220, 20, 22, 28));
+            using var border = new Pen(accent ? Theme.Gold : Theme.Muted, 1f);
+            using var fg = new SolidBrush(accent ? Theme.Text : Theme.Muted);
+            g.FillRectangle(bg, rect);
+            g.DrawRectangle(border, rect.X, rect.Y, rect.Width, rect.Height);
+            g.DrawString(text, Theme.Small, fg, x, y);
         }
 
         /// <summary>Icono segÃºn el tipo: calavera, corazÃ³n, brote o cofre; Â«âœ“Â» si ya estÃ¡ conseguido.</summary>
@@ -1174,7 +1199,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
                     g.FillEllipse(eye, cx + r * 0.1f, cy - r * 0.35f, r * 0.45f, r * 0.45f);
                 }
             }
-            else if (tipo.Contains("CorazÃ³n") || tipo.Contains("Corazon"))
+            else if (tipo.Contains("Corazón", StringComparison.OrdinalIgnoreCase) || tipo.Contains("Corazon"))
             {
                 // CorazÃ³n: dos cÃ­rculos + triÃ¡ngulo.
                 float s = r * 0.9f;
@@ -1292,6 +1317,8 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
+
 
 
 
