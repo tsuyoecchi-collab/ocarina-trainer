@@ -464,6 +464,8 @@ public sealed class CollectiblesPage : TrainerPage
             : ep.Contains("Adulto", StringComparison.OrdinalIgnoreCase);
     }
 
+    private string _lastHudSignature = "";
+
     private static string GetHudCategory(string tipo)
     {
         if (tipo.Contains("Skulltula", StringComparison.OrdinalIgnoreCase)) return "Skulltulas";
@@ -474,42 +476,53 @@ public sealed class CollectiblesPage : TrainerPage
 
     private void RefreshHudBadges()
     {
+        string[] cats = { "Skulltulas", "Piezas de Corazón", "Frijoles Mágicos", "Hojas Mágicas" };
+        var parts = new List<string>();
+        foreach (string cat in cats)
+        {
+            var group = _liveRows.Where(r => GetHudCategory(r.Dto.Tipo) == cat).ToList();
+            if (group.Count > 0)
+            {
+                int done = group.Count(r => r.Estado == "Conseguida");
+                parts.Add($"{cat}:{done}/{group.Count}");
+            }
+        }
+
+        string sig = string.Join("|", parts);
+        if (sig == _lastHudSignature && _hudBadges.Controls.Count > 0) return;
+        _lastHudSignature = sig;
+
         _hudBadges.SuspendLayout();
         _hudBadges.Controls.Clear();
 
-        string[] cats = { "Skulltulas", "Piezas de Corazón", "Frijoles Mágicos", "Hojas Mágicas" };
         foreach (string cat in cats)
         {
             var group = _liveRows.Where(r => GetHudCategory(r.Dto.Tipo) == cat).ToList();
             if (group.Count == 0) continue;
 
             int done = group.Count(r => r.Estado == "Conseguida");
-            var badge = CreateHudBadge(cat, done, group.Count);
-            _hudBadges.Controls.Add(badge);
+            _hudBadges.Controls.Add(CreateHudBadge(cat, done, group.Count));
         }
 
-        _hudBadges.ResumeLayout();
-
-        if (_detailCard.Visible && _activeHudType is not null)
-            ShowHudDetailsForType(_activeHudType, _map.SelectedId);
+        _hudBadges.ResumeLayout(false);
     }
 
     private Control CreateHudBadge(string category, int done, int total)
     {
-        bool isActive = _detailCard.Visible && _activeHudType == category;
         var panel = new Panel
         {
             Width = 86,
             Height = 28,
             Margin = new Padding(6, 1, 0, 1),
-            BackColor = isActive ? Color.FromArgb(72, 60, 38) : Color.FromArgb(46, 42, 36),
+            BackColor = Color.FromArgb(46, 42, 36),
             Cursor = Cursors.Hand
         };
 
         panel.Paint += (_, e) =>
         {
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using var border = new Pen(isActive ? Theme.Gold : Color.FromArgb(120, 102, 72), 1.4f);
+            bool activeNow = _detailCard.Visible && _activeHudType == category;
+            using var border = new Pen(activeNow ? Theme.Gold : Color.FromArgb(120, 102, 72), 1.4f);
             e.Graphics.DrawRectangle(border, 0, 0, panel.Width - 1, panel.Height - 1);
 
             float cx = 16f, cy = 14f;
@@ -561,7 +574,6 @@ public sealed class CollectiblesPage : TrainerPage
             {
                 _detailCard.Visible = false;
                 _activeHudType = null;
-                RefreshHudBadges();
             }
             else
             {
@@ -585,70 +597,40 @@ public sealed class CollectiblesPage : TrainerPage
         foreach (Row row in items)
         {
             bool isSel = row.Dto.Id == (highlightId ?? _map.SelectedId);
-            var card = new Panel
+            string badgeStatus = row.Estado == "Conseguida" ? "✓ Conseguida" : "• Pendiente";
+            var itemLabel = new Label
             {
-                Width = 310,
-                AutoSize = true,
+                Text = $"{row.Nombre}  [{badgeStatus}]\n{row.Dto.UbicacionExacta}",
+                ForeColor = row.Estado == "Conseguida" ? Color.FromArgb(120, 220, 130) : Theme.Text,
+                BackColor = isSel ? Color.FromArgb(62, 56, 44) : Color.FromArgb(32, 36, 44),
+                Font = Theme.Small,
                 Padding = new Padding(8, 6, 8, 6),
                 Margin = new Padding(0, 4, 0, 0),
-                BackColor = isSel ? Color.FromArgb(62, 56, 44) : Color.FromArgb(32, 36, 44),
+                Width = 310,
+                AutoSize = true,
+                MaximumSize = new Size(310, 0),
                 Cursor = Cursors.Hand
             };
 
-            string badgeStatus = row.Estado == "Conseguida" ? "✓ Conseguida" : "• Pendiente";
-            var lblName = new Label
+            string rowId = row.Dto.Id;
+            itemLabel.Click += (_, _) =>
             {
-                Text = $"{row.Nombre}  [{badgeStatus}]",
-                ForeColor = row.Estado == "Conseguida" ? Color.FromArgb(120, 220, 130) : Theme.Text,
-                Font = Theme.UiBold,
-                AutoSize = true,
-                MaximumSize = new Size(292, 0),
-                Dock = DockStyle.Top
-            };
-            var lblLoc = new Label
-            {
-                Text = row.Dto.UbicacionExacta,
-                ForeColor = Theme.Muted,
-                Font = Theme.Small,
-                AutoSize = true,
-                MaximumSize = new Size(292, 0),
-                Dock = DockStyle.Top,
-                Padding = new Padding(0, 2, 0, 0)
+                _map.SelectedId = rowId;
+                _map.Invalidate();
             };
 
-            void SelectThis(object? _, EventArgs __)
-            {
-                SelectRowInGrids(row);
-                ShowHudDetailsForType(category, row.Dto.Id);
-            }
-
-            card.Click += SelectThis;
-            lblName.Click += SelectThis;
-            lblLoc.Click += SelectThis;
-
-            card.Controls.Add(lblLoc);
-            card.Controls.Add(lblName);
-            _detailList.Controls.Add(card);
+            _detailList.Controls.Add(itemLabel);
         }
 
-        _detailList.ResumeLayout();
+        _detailList.ResumeLayout(false);
         _detailCard.Visible = true;
         _detailCard.BringToFront();
-        RefreshHudBadges();
     }
 
     private void SelectRowInGrids(Row row)
     {
         _map.SelectedId = row.Dto.Id;
         _map.Invalidate();
-        for (int i = 0; i < _rows.Count; i++)
-        {
-            if (_rows[i].Dto.Id == row.Dto.Id)
-            {
-                _grid.CurrentCell = _grid.Rows[i].Cells[0];
-                break;
-            }
-        }
     }
     private void UpdateProgress()
     {
@@ -1562,6 +1544,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
