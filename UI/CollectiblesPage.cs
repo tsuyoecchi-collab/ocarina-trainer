@@ -411,6 +411,38 @@ public sealed class CollectiblesPage : TrainerPage
 
     /// <summary>La lista Â«Mapa en vivoÂ» siempre muestra solo el mapa actual.</summary>
 
+    private void ApplyLiveFilter()
+    {
+        string? selectedId = (_liveGrid.CurrentRow?.DataBoundItem as Row)?.Dto.Id;
+        _liveRows.Clear();
+
+        if (_currentBanc is not { Length: > 0 } banc)
+        {
+            _liveCount.Text = "Sin mapa (conecta el juego).";
+            return;
+        }
+
+        foreach (Row row in _rows)
+        {
+            if (MatchesCurrentMapAndAge(row.Dto))
+                _liveRows.Add(row);
+        }
+
+        _liveCount.Text = $"{_liveRows.Count} en {banc}";
+
+        if (selectedId is not null)
+        {
+            for (int i = 0; i < _liveRows.Count; i++)
+            {
+                if (_liveRows[i].Dto.Id == selectedId)
+                {
+                    _liveGrid.Rows[i].Selected = true;
+                    break;
+                }
+            }
+        }
+    }
+
     private void UpdateSelection(DataGridView grid)
     {
         _map.SelectedId = (grid.CurrentRow?.DataBoundItem as Row)?.Dto.Id;
@@ -1243,6 +1275,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
