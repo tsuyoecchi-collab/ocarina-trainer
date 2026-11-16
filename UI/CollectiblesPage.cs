@@ -1190,14 +1190,48 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
 
             if (tipo.Contains("Skulltula"))
             {
-                // Calavera dorada: cÃ­rculo + ojos oscuros.
-                using (var skull = new SolidBrush(Theme.Gold))
-                    g.FillEllipse(skull, cx - r, cy - r, r * 2, r * 2);
-                using (var eye = new SolidBrush(Theme.Bg))
+                // Cráneo dorado estilo ficha de Skulltula: bóveda craneal + mandíbula con dientes + cuencas + nariz.
+                float s = r * 1.18f;
+                using var skullFill = new SolidBrush(Color.FromArgb(232, 190, 74));
+                using var skullRim = new Pen(Color.FromArgb(115, 78, 18), 1.3f);
+                using var cavity = new SolidBrush(Color.FromArgb(105, 72, 26));
+
+                // 1. Mandíbula inferior con 3 dientes
+                var jaw = new PointF[]
                 {
-                    g.FillEllipse(eye, cx - r * 0.55f, cy - r * 0.35f, r * 0.45f, r * 0.45f);
-                    g.FillEllipse(eye, cx + r * 0.1f, cy - r * 0.35f, r * 0.45f, r * 0.45f);
-                }
+                    new(cx - s * 0.52f, cy + s * 0.25f),
+                    new(cx + s * 0.52f, cy + s * 0.25f),
+                    new(cx + s * 0.46f, cy + s * 0.92f),
+                    new(cx + s * 0.28f, cy + s * 0.72f),
+                    new(cx + s * 0.14f, cy + s * 0.95f),
+                    new(cx,             cy + s * 0.72f),
+                    new(cx - s * 0.14f, cy + s * 0.95f),
+                    new(cx - s * 0.28f, cy + s * 0.72f),
+                    new(cx - s * 0.46f, cy + s * 0.92f)
+                };
+                g.FillPolygon(skullFill, jaw);
+                g.DrawPolygon(skullRim, jaw);
+
+                // 2. Bóveda superior del cráneo
+                var domeRect = new RectangleF(cx - s * 0.95f, cy - s * 0.95f, s * 1.9f, s * 1.55f);
+                g.FillEllipse(skullFill, domeRect);
+                g.DrawEllipse(skullRim, domeRect);
+
+                // Suavizar unión entre bóveda y mandíbula
+                g.FillRectangle(skullFill, cx - s * 0.46f, cy + s * 0.20f, s * 0.92f, s * 0.35f);
+
+                // 3. Cuencas oculares grandes
+                g.FillEllipse(cavity, cx - s * 0.68f, cy - s * 0.25f, s * 0.52f, s * 0.55f);
+                g.FillEllipse(cavity, cx + s * 0.16f, cy - s * 0.25f, s * 0.52f, s * 0.55f);
+
+                // 4. Cavidad nasal triangular
+                var nose = new PointF[]
+                {
+                    new(cx,             cy + s * 0.18f),
+                    new(cx - s * 0.16f, cy + s * 0.44f),
+                    new(cx + s * 0.16f, cy + s * 0.44f)
+                };
+                g.FillPolygon(cavity, nose);
             }
             else if (tipo.Contains("Corazón", StringComparison.OrdinalIgnoreCase) || tipo.Contains("Corazon"))
             {
@@ -1343,6 +1377,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
