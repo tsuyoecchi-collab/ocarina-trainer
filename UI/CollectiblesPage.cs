@@ -81,6 +81,7 @@ public sealed class CollectiblesPage : TrainerPage
     private readonly CheckBox _onlyMissing = Ui.Check("Solo faltantes", false);
     private readonly Label _count = Ui.Hint("");
     private readonly Label _liveCount = Ui.Hint("");
+    private readonly Label _hudZoneTitle = new() { AutoSize = true, ForeColor = Color.FromArgb(236, 224, 198), Font = new Font("Georgia", 15f, FontStyle.Bold), BackColor = Color.Transparent };
     private readonly FlowLayoutPanel _hudBadges = new() { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(12, 2, 0, 0) };
     private readonly Panel _detailCard = new() { Visible = false, BackColor = Color.FromArgb(238, 22, 25, 31), Padding = new Padding(12), Width = 340, AutoSize = true, MaximumSize = new Size(360, 420) };
     private readonly Label _detailTitle = Ui.Label("", bold: true);
@@ -198,8 +199,32 @@ public sealed class CollectiblesPage : TrainerPage
         _detailCard.Location = new Point(14, 14);
         _detailCard.Paint += (_, e) => { using var pen = new Pen(Color.FromArgb(140, 120, 82), 1.5f); e.Graphics.DrawRectangle(pen, 0, 0, _detailCard.Width - 1, _detailCard.Height - 1); };
 
+        var hudOverlay = new Panel
+        {
+            Location = new Point(16, 12),
+            AutoSize = true,
+            BackColor = Color.FromArgb(190, 18, 20, 26),
+            Padding = new Padding(10, 6, 12, 8)
+        };
+        var hudStack = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            AutoSize = true,
+            BackColor = Color.Transparent
+        };
+        var goldLine = new Panel { Height = 2, Width = 210, BackColor = Color.FromArgb(195, 165, 95), Margin = new Padding(0, 2, 0, 6) };
+        _hudBadges.Margin = new Padding(0);
+        hudStack.Controls.Add(_hudZoneTitle);
+        hudStack.Controls.Add(goldLine);
+        hudStack.Controls.Add(_hudBadges);
+        hudOverlay.Controls.Add(hudStack);
+
+        _detailCard.Location = new Point(16, 98);
+        mapHost.Controls.Add(hudOverlay);
         mapHost.Controls.Add(_detailCard);
         mapHost.Controls.Add(_map);
+        hudOverlay.BringToFront();
         _detailCard.BringToFront();
         layout.Controls.Add(mapHost, 0, 1);
         page.Controls.Add(layout);
@@ -399,6 +424,8 @@ public sealed class CollectiblesPage : TrainerPage
         }
 
         _liveCount.Text = $"{_liveRows.Count} en {banc}";
+        string prettyZone = _liveRows.FirstOrDefault()?.Zona ?? banc;
+        _hudZoneTitle.Text = prettyZone;
         RefreshHudBadges();
 
         if (selectedId is not null)
@@ -1519,6 +1546,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
