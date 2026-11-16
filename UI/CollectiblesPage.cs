@@ -410,37 +410,6 @@ public sealed class CollectiblesPage : TrainerPage
     }
 
     /// <summary>La lista Â«Mapa en vivoÂ» siempre muestra solo el mapa actual.</summary>
-    private void ApplyLiveFilter()
-    {
-        _liveGrid.ClearSelection();
-        _liveGrid.CurrentCell = null;
-
-        foreach (DataGridViewRow row in _liveGrid.Rows)
-        {
-            if (row.DataBoundItem is not Row item) continue;
-            if (_currentBanc is not { Length: > 0 } banc)
-            {
-                row.Visible = false;
-                continue;
-            }
-            string baseItem = (item.Dto.MapId ?? "").Replace("_Child", "", StringComparison.OrdinalIgnoreCase)
-                                                    .Replace("_Adult", "", StringComparison.OrdinalIgnoreCase);
-            string baseBanc = banc.Replace("_Child", "", StringComparison.OrdinalIgnoreCase)
-                                  .Replace("_Adult", "", StringComparison.OrdinalIgnoreCase);
-            bool sameMap = string.Equals(baseItem, baseBanc, StringComparison.OrdinalIgnoreCase);
-            string ep = item.Dto.Epoca ?? "";
-            bool sameAge = ep.Contains("Niño", StringComparison.OrdinalIgnoreCase) && ep.Contains("Adulto", StringComparison.OrdinalIgnoreCase)
-                || (_isChild && ep.Contains("Niño", StringComparison.OrdinalIgnoreCase))
-                || (!_isChild && ep.Contains("Adulto", StringComparison.OrdinalIgnoreCase))
-                || string.IsNullOrWhiteSpace(ep);
-            row.Visible = sameMap && sameAge;
-        }
-
-        int visible = _liveGrid.Rows.Cast<DataGridViewRow>().Count(r => r.Visible);
-        _liveCount.Text = _currentBanc is { Length: > 0 } current
-            ? $"{visible} en {current}"
-            : "Sin mapa (conecta el juego).";
-    }
 
     private void UpdateSelection(DataGridView grid)
     {
@@ -1274,6 +1243,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
