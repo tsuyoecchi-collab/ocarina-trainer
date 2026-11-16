@@ -633,7 +633,7 @@ public sealed class CollectiblesPage : TrainerPage
 
         // PosiciÃ³n de Link en vivo (X y Z flotantes a travÃ©s del mismo puntero).
         _map.LinkPosition = ReadLinkPosition(memory);
-        _map.LinkAngle = ReadLinkAngle(memory);
+        _map.IsChild = _isChild; _map.LinkAngle = ReadLinkAngle(memory);
 
         string? autoState = DetectAutoStateSuffix(memory, _currentBanc, _isChild);
         if (autoState is not null && autoState != _lastAutoState)
@@ -1019,7 +1019,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
 
         /// <summary>Ãngulo de mirada de Link en el plano del mapa (radianes, atan2(fz, fx)).</summary>
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public float LinkAngle { get; set; }
+        public float LinkAngle { get; set; } [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)] public bool IsChild { get; set; } = true;
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<(CollectibleDto Dto, bool Obtenido)> Pins { get; set; } = new();
@@ -1213,13 +1213,39 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
             }
             else if (tipo.Contains("Frijol"))
             {
-                // Brote verde: tallo + dos hojas.
-                using (var stem = new Pen(Color.FromArgb(120, 190, 90), 2f))
-                    g.DrawLine(stem, cx, cy + r, cx, cy - r * 0.2f);
-                using (var leaf = new SolidBrush(Color.FromArgb(150, 220, 120)))
+                if (!obtenido)
                 {
-                    g.FillEllipse(leaf, cx - r * 1.1f, cy - r, r, r * 0.7f);
-                    g.FillEllipse(leaf, cx + r * 0.1f, cy - r, r, r * 0.7f);
+                    // Tierra blanda con agujero oscuro en el centro (sin plantar aún).
+                    using (var soil = new SolidBrush(Color.FromArgb(141, 110, 99)))
+                        g.FillEllipse(soil, cx - r, cy - r * 0.75f, r * 2, r * 1.5f);
+                    using (var hole = new SolidBrush(Color.FromArgb(45, 32, 28)))
+                        g.FillEllipse(hole, cx - r * 0.45f, cy - r * 0.35f, r * 0.9f, r * 0.7f);
+                }
+                else if (IsChild)
+                {
+                    // Niño con frijol plantado: tierra + brote verde tierno.
+                    using (var soil = new SolidBrush(Color.FromArgb(121, 85, 72)))
+                        g.FillEllipse(soil, cx - r * 0.85f, cy + r * 0.15f, r * 1.7f, r * 0.75f);
+                    using (var stem = new Pen(Color.FromArgb(120, 200, 90), 2f))
+                        g.DrawLine(stem, cx, cy + r * 0.4f, cx, cy - r * 0.4f);
+                    using (var leaf = new SolidBrush(Color.FromArgb(150, 230, 120)))
+                    {
+                        g.FillEllipse(leaf, cx - r * 0.95f, cy - r * 0.85f, r * 0.9f, r * 0.55f);
+                        g.FillEllipse(leaf, cx + r * 0.05f, cy - r * 0.85f, r * 0.9f, r * 0.55f);
+                    }
+                }
+                else
+                {
+                    // Adulto con frijol plantado: hoja plataforma grande desarrollada (sin agujero de tierra).
+                    using (var pad = new SolidBrush(Color.FromArgb(46, 204, 113)))
+                        g.FillEllipse(pad, cx - r * 1.25f, cy - r * 0.95f, r * 2.5f, r * 1.9f);
+                    using (var rim = new Pen(Color.FromArgb(163, 247, 191), 1.6f))
+                        g.DrawEllipse(rim, cx - r * 1.25f, cy - r * 0.95f, r * 2.5f, r * 1.9f);
+                    using (var vein = new Pen(Color.FromArgb(27, 130, 72), 1.4f))
+                    {
+                        g.DrawLine(vein, cx - r * 0.8f, cy, cx + r * 0.8f, cy);
+                        g.DrawLine(vein, cx, cy - r * 0.6f, cx, cy + r * 0.6f);
+                    }
                 }
             }
             else
@@ -1317,6 +1343,8 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
+
 
 
 
