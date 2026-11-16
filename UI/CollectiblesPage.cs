@@ -634,7 +634,7 @@ public sealed class CollectiblesPage : TrainerPage
         // Solo los pines del mapa actual (nunca los 185 amontonados).
         _map.Pins = _currentBanc is { Length: > 0 } current
             ? _items
-                .Where(dto => string.Equals(dto.MapId.Replace("_Child","").Replace("_Adult",""), current.Replace("_Child","").Replace("_Adult",""), StringComparison.OrdinalIgnoreCase))
+                .Where(dto => string.Equals(dto.Mapa.Replace("_Child","").Replace("_Adult",""), current.Replace("_Child","").Replace("_Adult",""), StringComparison.OrdinalIgnoreCase))
                 .Where(dto => dto.WorldX != 0 || dto.WorldZ != 0)
                 .Where(dto => MatchesFloor(dto, current, GetSelectedFloorTag()))
                 .Select(dto => (dto, ReadEstadoCached(estados, dto)))
@@ -1274,6 +1274,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
