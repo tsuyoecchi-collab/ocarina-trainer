@@ -1,0 +1,51 @@
+﻿# Etiquetas de texto encontradas en un save de Ocarina of Time Remake
+#
+# Archivo : E:\OcarinaRemake\Game\profile\save\2792e58f023d7f43ff7f69dcb5313f6a\slot_04\progress.sav
+# Tamano  : 120956 bytes
+# Fecha   : 11/14/2026 23:50:39
+# Generado: 2026-11-15 00:32:35
+#
+# Identificadores encontrados: 16
+#
+# Seccion 1: por offset en el archivo (offset, texto).
+# Seccion 2: unicos, ordenados alfabeticamente, con las veces que aparecen.
+#
+# Nota: los nombres viven en ranuras de 0x40 bytes. Cuando el juego reutiliza
+# una ranura con un nombre mas corto, quedan restos del anterior (p. ej.
+# 'tem_BombBag_Large' es 'Item_BombBag_Large' con la 'I' sobrescrita, y
+# 'rmor_Child_Mask_Bunny' es 'Armor_Child_Mask_Bunny').
+#
+# Offsets
+# -------
+0x01B564	InsideTheDekuTree
+0x01B5C4	Weapon_Shield_Deku
+0x01B684	Item_BulletBag_Small
+0x01B844	Weapon_Shield_Deku
+0x01B884	Weapon_Sword_Kokiri
+0x01B8C4	Item_Token_Gold
+0x01B905	tem_BombBag_Large
+0x01B984	Get_StoneOfForest
+0x01BA44	Item_StickBag_Small
+0x01BAC4	Item_Wallet_Small
+0x01BB05	tem_Stone_Water
+0x01BB45	tem_Ocarina_Time
+0x01BC44	Item_NutBag_Small
+0x01BC85	rmor_Child_Mask_Bunny
+0x01BCC4	InsideTheDekuTree
+0x01C210	InsideTheDekuTree
+
+# Unicos
+# ------
+Get_StoneOfForest	1
+InsideTheDekuTree	3
+Item_BulletBag_Small	1
+Item_NutBag_Small	1
+Item_StickBag_Small	1
+Item_Token_Gold	1
+Item_Wallet_Small	1
+rmor_Child_Mask_Bunny	1
+tem_BombBag_Large	1
+tem_Ocarina_Time	1
+tem_Stone_Water	1
+Weapon_Shield_Deku	2
+Weapon_Sword_Kokiri	1
