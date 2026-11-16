@@ -81,6 +81,11 @@ public sealed class CollectiblesPage : TrainerPage
     private readonly CheckBox _onlyMissing = Ui.Check("Solo faltantes", false);
     private readonly Label _count = Ui.Hint("");
     private readonly Label _liveCount = Ui.Hint("");
+    private readonly FlowLayoutPanel _hudBadges = new() { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(12, 2, 0, 0) };
+    private readonly Panel _detailCard = new() { Visible = false, BackColor = Color.FromArgb(238, 22, 25, 31), Padding = new Padding(12), Width = 340, AutoSize = true, MaximumSize = new Size(360, 420) };
+    private readonly Label _detailTitle = Ui.Label("", bold: true);
+    private readonly FlowLayoutPanel _detailList = new() { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, MaximumSize = new Size(330, 340), AutoScroll = true, BackColor = Color.Transparent };
+    private string? _activeHudType;
     private readonly Label _age = Ui.Hint("Edad: â€”");
     private readonly Label _mapState = Ui.Hint("Mapa: â€”");
     private readonly Label _progressSkull = Ui.Label("Skulltulas 0/0", muted: true);
@@ -141,100 +146,65 @@ public sealed class CollectiblesPage : TrainerPage
 
     private TabPage BuildLiveTab()
     {
-        var page = new TabPage("Mapa en vivo")
-        {
-            BackColor = Theme.Bg,
-            ForeColor = Theme.Text,
-            Padding = new Padding(10)
-        };
-
-        var layout = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Theme.Bg,
-            ColumnCount = 2,
-            RowCount = 2
-        };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42f));
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58f));
+        var page = new TabPage("Mapa en vivo") { BackColor = Theme.Bg, ForeColor = Theme.Text, Padding = new Padding(10) };
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, BackColor = Theme.Bg, ColumnCount = 1, RowCount = 2 };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
-        var header = new FlowLayoutPanel
-        {
-            AutoSize = true,
-            WrapContents = false,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0)
-        };
+        var topBar = new Panel { Dock = DockStyle.Fill, AutoSize = true, BackColor = Theme.Card, Padding = new Padding(10, 6, 10, 6), Margin = new Padding(0, 0, 0, 8) };
+        var header = new FlowLayoutPanel { Dock = DockStyle.Left, AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
         header.Controls.Add(Ui.Section("MAPA EN VIVO"));
-        _mapState.Margin = new Padding(12, 8, 0, 0);
+        _mapState.Margin = new Padding(10, 7, 0, 0);
         header.Controls.Add(_mapState);
-        _age.Margin = new Padding(10, 8, 0, 0);
+        _age.Margin = new Padding(10, 7, 0, 0);
         _age.ForeColor = Theme.Gold;
         header.Controls.Add(_age);
-        layout.Controls.Add(header, 0, 0);
-        layout.SetColumnSpan(header, 2);
+        header.Controls.Add(_hudBadges);
 
-        // -------- izquierda: lista compacta del mapa actual
-        var left = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Card, Padding = new Padding(8) };
-
-        _liveGrid.Columns.Clear();
-        _liveGrid.Columns.Add(Ui.TextColumn("Estado", nameof(Row.Estado), 90, format: "notmono"));
-        _liveGrid.Columns.Add(Ui.TextColumn("Tipo", nameof(Row.Tipo), 105, format: "notmono"));
-        _liveGrid.Columns.Add(Ui.FillColumn("Nombre", nameof(Row.Nombre)));
-        _liveGrid.DataSource = _liveRows;
-        _liveGrid.SelectionChanged += (_, _) => UpdateSelection(_liveGrid);
-
-        var liveBar = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            WrapContents = false,
-            BackColor = Color.Transparent,
-            Padding = new Padding(0, 0, 0, 6)
-        };
-        var saveButton = Ui.Button("Guardar X, Z en fila", primary: true);
-        saveButton.Click += (_, _) => SaveCurrentPositionToRow();
-        liveBar.Controls.Add(saveButton);
-        _liveCount.Margin = new Padding(10, 9, 0, 0);
-        liveBar.Controls.Add(_liveCount);
-
-        left.Controls.Add(_liveGrid);
-        left.Controls.Add(liveBar);
-        layout.Controls.Add(left, 0, 1);
-
-        // -------- derecha: visor grande + selector de piso
-        var right = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Card, Padding = new Padding(10, 0, 0, 0) };
-
-        var floorBar = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            WrapContents = false,
-            BackColor = Color.Transparent,
-            Padding = new Padding(0, 0, 0, 6)
-        };
-        floorBar.Controls.Add(Ui.Label("Piso:", muted: true, bold: true));
-        _floor.Margin = new Padding(6, 0, 0, 0);
+        var rightControls = new FlowLayoutPanel { Dock = DockStyle.Right, AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
+        var floorLbl = Ui.Label("Piso:", muted: true, bold: true);
+        floorLbl.Margin = new Padding(0, 6, 6, 0);
+        rightControls.Controls.Add(floorLbl);
+        _floor.Margin = new Padding(0, 2, 0, 0);
         _floor.SelectedIndexChanged += (_, _) =>
         {
             if (_updatingFloors || _floor.SelectedIndex < 0 || _floor.SelectedIndex >= _floorPaths.Count) return;
             _map.TextureOverride = _floorPaths[_floor.SelectedIndex];
             _map.ReloadMap();
         };
-        floorBar.Controls.Add(_floor);
+        rightControls.Controls.Add(_floor);
+        topBar.Controls.Add(header);
+        topBar.Controls.Add(rightControls);
+        layout.Controls.Add(topBar, 0, 0);
 
+        var mapHost = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Card, Padding = new Padding(4) };
         _map.Dock = DockStyle.Fill;
         _map.BackColor = Theme.Card;
-        right.Controls.Add(_map);
-        right.Controls.Add(floorBar);
-        layout.Controls.Add(right, 1, 1);
 
+        var detailHeader = new Panel { Dock = DockStyle.Top, Height = 26, BackColor = Color.Transparent };
+        _detailTitle.Dock = DockStyle.Left;
+        _detailTitle.AutoSize = true;
+        _detailTitle.ForeColor = Theme.Gold;
+        var closeBtn = new Label { Text = "✕", Dock = DockStyle.Right, Width = 22, TextAlign = ContentAlignment.MiddleCenter, ForeColor = Theme.Muted, Cursor = Cursors.Hand, Font = Theme.UiBold };
+        closeBtn.Click += (_, _) => { _detailCard.Visible = false; _activeHudType = null; RefreshHudBadges(); };
+        detailHeader.Controls.Add(_detailTitle);
+        detailHeader.Controls.Add(closeBtn);
+
+        _detailList.Dock = DockStyle.Top;
+        _detailCard.Controls.Clear();
+        _detailCard.Controls.Add(_detailList);
+        _detailCard.Controls.Add(detailHeader);
+        _detailCard.Location = new Point(14, 14);
+        _detailCard.Paint += (_, e) => { using var pen = new Pen(Color.FromArgb(140, 120, 82), 1.5f); e.Graphics.DrawRectangle(pen, 0, 0, _detailCard.Width - 1, _detailCard.Height - 1); };
+
+        mapHost.Controls.Add(_detailCard);
+        mapHost.Controls.Add(_map);
+        _detailCard.BringToFront();
+        layout.Controls.Add(mapHost, 0, 1);
         page.Controls.Add(layout);
         return page;
     }
-
     private TabPage BuildCatalogTab()
     {
         var page = new TabPage("Catálogo y Progreso")
@@ -429,6 +399,7 @@ public sealed class CollectiblesPage : TrainerPage
         }
 
         _liveCount.Text = $"{_liveRows.Count} en {banc}";
+        RefreshHudBadges();
 
         if (selectedId is not null)
         {
@@ -466,6 +437,177 @@ public sealed class CollectiblesPage : TrainerPage
             : ep.Contains("Adulto", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static string GetHudCategory(string tipo)
+    {
+        if (tipo.Contains("Skulltula", StringComparison.OrdinalIgnoreCase)) return "Skulltulas";
+        if (tipo.Contains("Corazón", StringComparison.OrdinalIgnoreCase)) return "Piezas de Corazón";
+        if (tipo.Contains("Frijol", StringComparison.OrdinalIgnoreCase)) return "Frijoles Mágicos";
+        return "Hojas Mágicas";
+    }
+
+    private void RefreshHudBadges()
+    {
+        _hudBadges.SuspendLayout();
+        _hudBadges.Controls.Clear();
+
+        string[] cats = { "Skulltulas", "Piezas de Corazón", "Frijoles Mágicos", "Hojas Mágicas" };
+        foreach (string cat in cats)
+        {
+            var group = _liveRows.Where(r => GetHudCategory(r.Dto.Tipo) == cat).ToList();
+            if (group.Count == 0) continue;
+
+            int done = group.Count(r => r.Estado == "Conseguida");
+            var badge = CreateHudBadge(cat, done, group.Count);
+            _hudBadges.Controls.Add(badge);
+        }
+
+        _hudBadges.ResumeLayout();
+
+        if (_detailCard.Visible && _activeHudType is not null)
+            ShowHudDetailsForType(_activeHudType, _map.SelectedId);
+    }
+
+    private Control CreateHudBadge(string category, int done, int total)
+    {
+        bool isActive = _detailCard.Visible && _activeHudType == category;
+        var panel = new Panel
+        {
+            Width = 86,
+            Height = 28,
+            Margin = new Padding(6, 1, 0, 1),
+            BackColor = isActive ? Color.FromArgb(72, 60, 38) : Color.FromArgb(46, 42, 36),
+            Cursor = Cursors.Hand
+        };
+
+        panel.Paint += (_, e) =>
+        {
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using var border = new Pen(isActive ? Theme.Gold : Color.FromArgb(120, 102, 72), 1.4f);
+            e.Graphics.DrawRectangle(border, 0, 0, panel.Width - 1, panel.Height - 1);
+
+            float cx = 16f, cy = 14f;
+            if (category == "Skulltulas")
+            {
+                using var gold = new SolidBrush(Color.FromArgb(232, 190, 74));
+                using var dark = new SolidBrush(Color.FromArgb(75, 50, 15));
+                e.Graphics.FillEllipse(gold, cx - 7, cy - 7, 14, 12);
+                e.Graphics.FillRectangle(gold, cx - 4, cy + 2, 8, 5);
+                e.Graphics.FillEllipse(dark, cx - 4.5f, cy - 3, 3.5f, 3.5f);
+                e.Graphics.FillEllipse(dark, cx + 1f, cy - 3, 3.5f, 3.5f);
+            }
+            else if (category == "Piezas de Corazón")
+            {
+                using var red = new SolidBrush(Color.FromArgb(220, 65, 75));
+                e.Graphics.FillEllipse(red, cx - 7, cy - 5, 7, 7);
+                e.Graphics.FillEllipse(red, cx, cy - 5, 7, 7);
+                e.Graphics.FillPolygon(red, new PointF[] { new(cx - 7, cy - 1), new(cx + 7, cy - 1), new(cx, cy + 7) });
+            }
+            else
+            {
+                using var green = new SolidBrush(Color.FromArgb(110, 210, 110));
+                e.Graphics.FillEllipse(green, cx - 7, cy - 4, 14, 8);
+            }
+
+            string text = $"{done}/{total}";
+            using var fg = new SolidBrush(done == total ? Color.FromArgb(130, 230, 140) : Theme.Text);
+            e.Graphics.DrawString(text, Theme.UiBold, fg, 30f, 5f);
+        };
+
+        panel.Click += (_, _) =>
+        {
+            if (_detailCard.Visible && _activeHudType == category)
+            {
+                _detailCard.Visible = false;
+                _activeHudType = null;
+                RefreshHudBadges();
+            }
+            else
+            {
+                ShowHudDetailsForType(category, null);
+            }
+        };
+
+        return panel;
+    }
+
+    private void ShowHudDetailsForType(string category, string? highlightId)
+    {
+        _activeHudType = category;
+        var items = _liveRows.Where(r => GetHudCategory(r.Dto.Tipo) == category).ToList();
+        int done = items.Count(r => r.Estado == "Conseguida");
+        _detailTitle.Text = $"{category} ({done}/{items.Count})";
+
+        _detailList.SuspendLayout();
+        _detailList.Controls.Clear();
+
+        foreach (Row row in items)
+        {
+            bool isSel = row.Dto.Id == (highlightId ?? _map.SelectedId);
+            var card = new Panel
+            {
+                Width = 310,
+                AutoSize = true,
+                Padding = new Padding(8, 6, 8, 6),
+                Margin = new Padding(0, 4, 0, 0),
+                BackColor = isSel ? Color.FromArgb(62, 56, 44) : Color.FromArgb(32, 36, 44),
+                Cursor = Cursors.Hand
+            };
+
+            string badgeStatus = row.Estado == "Conseguida" ? "✓ Conseguida" : "• Pendiente";
+            var lblName = new Label
+            {
+                Text = $"{row.Nombre}  [{badgeStatus}]",
+                ForeColor = row.Estado == "Conseguida" ? Color.FromArgb(120, 220, 130) : Theme.Text,
+                Font = Theme.UiBold,
+                AutoSize = true,
+                MaximumSize = new Size(292, 0),
+                Dock = DockStyle.Top
+            };
+            var lblLoc = new Label
+            {
+                Text = row.Dto.UbicacionExacta,
+                ForeColor = Theme.Muted,
+                Font = Theme.Small,
+                AutoSize = true,
+                MaximumSize = new Size(292, 0),
+                Dock = DockStyle.Top,
+                Padding = new Padding(0, 2, 0, 0)
+            };
+
+            void SelectThis(object? _, EventArgs __)
+            {
+                SelectRowInGrids(row);
+                ShowHudDetailsForType(category, row.Dto.Id);
+            }
+
+            card.Click += SelectThis;
+            lblName.Click += SelectThis;
+            lblLoc.Click += SelectThis;
+
+            card.Controls.Add(lblLoc);
+            card.Controls.Add(lblName);
+            _detailList.Controls.Add(card);
+        }
+
+        _detailList.ResumeLayout();
+        _detailCard.Visible = true;
+        _detailCard.BringToFront();
+        RefreshHudBadges();
+    }
+
+    private void SelectRowInGrids(Row row)
+    {
+        _map.SelectedId = row.Dto.Id;
+        _map.Invalidate();
+        for (int i = 0; i < _rows.Count; i++)
+        {
+            if (_rows[i].Dto.Id == row.Dto.Id)
+            {
+                _grid.CurrentCell = _grid.Rows[i].Cells[0];
+                break;
+            }
+        }
+    }
     private void UpdateProgress()
     {
         int skullTotal = 0, skullDone = 0;
@@ -1377,6 +1519,10 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
+
+
+
 
 
 
