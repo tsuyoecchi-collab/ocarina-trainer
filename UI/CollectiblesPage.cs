@@ -449,6 +449,23 @@ public sealed class CollectiblesPage : TrainerPage
         _map.Invalidate();
     }
 
+    private bool MatchesCurrentMapAndAge(CollectibleDto dto)
+    {
+        if (_currentBanc is not { Length: > 0 } banc) return false;
+        string baseItem = (dto.Mapa ?? "").Replace("_Child", "", StringComparison.OrdinalIgnoreCase)
+                                            .Replace("_Adult", "", StringComparison.OrdinalIgnoreCase);
+        string baseBanc = banc.Replace("_Child", "", StringComparison.OrdinalIgnoreCase)
+                              .Replace("_Adult", "", StringComparison.OrdinalIgnoreCase);
+        if (!string.Equals(baseItem, baseBanc, StringComparison.OrdinalIgnoreCase)) return false;
+
+        string ep = dto.Epoca ?? "";
+        if (string.IsNullOrWhiteSpace(ep)) return true;
+        if (ep.Contains("Niño", StringComparison.OrdinalIgnoreCase) && ep.Contains("Adulto", StringComparison.OrdinalIgnoreCase)) return true;
+        return _isChild
+            ? ep.Contains("Niño", StringComparison.OrdinalIgnoreCase)
+            : ep.Contains("Adulto", StringComparison.OrdinalIgnoreCase);
+    }
+
     private void UpdateProgress()
     {
         int skullTotal = 0, skullDone = 0;
@@ -1275,6 +1292,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
