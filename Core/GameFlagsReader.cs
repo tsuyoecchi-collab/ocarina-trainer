@@ -242,15 +242,22 @@ public static class GameFlagsReader
         var active = new HashSet<ulong>();
         if (!TryResolveManager(memory, out long manager, out _)) return active;
 
+        ReadBool64Table(memory, manager + 0xC58, active);
+        ReadBool64Table(memory, manager + 0xC88, active);
+        return active;
+    }
+
+    private static void ReadBool64Table(GameMemory memory, long sectionAddr, HashSet<ulong> active)
+    {
         byte[] header = new byte[0x10];
-        if (!memory.TryRead(manager + 0xC58, header)) return active;
+        if (!memory.TryRead(sectionAddr, header)) return;
 
         int count = BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(0));
         long ptr = unchecked((long)BinaryPrimitives.ReadUInt64LittleEndian(header.AsSpan(8)));
-        if (ptr <= 0 || count <= 0 || count > 100_000) return active;
+        if (ptr <= 0 || count <= 0 || count > 100_000) return;
 
         byte[] buf = new byte[count * 16];
-        if (!memory.TryRead(ptr, buf)) return active;
+        if (!memory.TryRead(ptr, buf)) return;
 
         for (int i = 0; i < count; i++)
         {
@@ -258,7 +265,9 @@ public static class GameFlagsReader
             if ((buf[off + 12] & 1) != 0)
                 active.Add(BinaryPrimitives.ReadUInt64LittleEndian(buf.AsSpan(off)));
         }
-        return active;
+        return;
     }
 }
+
+
 

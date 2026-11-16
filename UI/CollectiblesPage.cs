@@ -524,10 +524,25 @@ public sealed class CollectiblesPage : TrainerPage
             }
             else if (category == "Piezas de Corazón")
             {
-                using var red = new SolidBrush(Color.FromArgb(220, 65, 75));
-                e.Graphics.FillEllipse(red, cx - 7, cy - 5, 7, 7);
-                e.Graphics.FillEllipse(red, cx, cy - 5, 7, 7);
-                e.Graphics.FillPolygon(red, new PointF[] { new(cx - 7, cy - 1), new(cx + 7, cy - 1), new(cx, cy + 7) });
+                float s = 8.5f;
+                float midX = cx + 1.5f;
+                using var silverFill = new SolidBrush(Color.FromArgb(168, 178, 190));
+                using var silverRim = new Pen(Color.FromArgb(72, 82, 94), 1.1f);
+                using var rubyFill = new SolidBrush(Color.FromArgb(224, 36, 48));
+
+                using var outerPath = new System.Drawing.Drawing2D.GraphicsPath();
+                outerPath.AddBezier(midX, cy - s * 0.42f, midX - s * 0.45f, cy - s * 1.05f, midX - s * 1.25f, cy - s * 0.35f, midX - s * 0.85f, cy + s * 0.35f);
+                outerPath.AddLine(midX - s * 0.85f, cy + s * 0.35f, midX, cy + s * 1.05f);
+                outerPath.CloseFigure();
+                e.Graphics.FillPath(silverFill, outerPath);
+                e.Graphics.DrawPath(silverRim, outerPath);
+
+                using var innerPath = new System.Drawing.Drawing2D.GraphicsPath();
+                float inX = midX - 1f;
+                innerPath.AddBezier(inX, cy - s * 0.24f, inX - s * 0.32f, cy - s * 0.68f, inX - s * 0.85f, cy - s * 0.22f, inX - s * 0.56f, cy + s * 0.24f);
+                innerPath.AddLine(inX - s * 0.56f, cy + s * 0.24f, inX, cy + s * 0.72f);
+                innerPath.CloseFigure();
+                e.Graphics.FillPath(rubyFill, innerPath);
             }
             else
             {
@@ -1547,6 +1562,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
