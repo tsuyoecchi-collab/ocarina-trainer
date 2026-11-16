@@ -419,7 +419,7 @@ public sealed class CollectiblesPage : TrainerPage
 
         foreach (Row row in _rows)
         {
-            if (MatchesCurrentMapAndAge(row.Dto))
+            if (string.Equals(row.Dto.MapId.Replace("_Child","").Replace("_Adult",""), banc.Replace("_Child","").Replace("_Adult",""), StringComparison.OrdinalIgnoreCase))
                 _liveRows.Add(row);
         }
 
@@ -798,6 +798,7 @@ public sealed class CollectiblesPage : TrainerPage
         {
             ApplyFilters();
             UpdateProgress();
+            RefreshHudBadges();
         }
 
         // PosiciÃ³n de Link en vivo (X y Z flotantes a travÃ©s del mismo puntero).
@@ -1546,6 +1547,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
