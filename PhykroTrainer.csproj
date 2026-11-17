@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -17,7 +17,7 @@
     <Product>Phykro Trainer</Product>
     <AssemblyTitle>Phykro Trainer</AssemblyTitle>
     <Description>Trainer de memoria para juegos de un solo jugador</Description>
-    <Version>1.0.0</Version>
+    <Version>1.2.0</Version>
     <DebugType>embedded</DebugType>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
