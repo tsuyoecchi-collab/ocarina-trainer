@@ -116,12 +116,20 @@ public sealed class CollectiblesPage : TrainerPage
 
     // ---------------------------------------------------------------- interfaz
 
+    public void ToggleCatalogView()
+    {
+        if (_tabs.TabPages.Count < 2) return;
+        _tabs.SelectedIndex = _tabs.SelectedIndex == 0 ? 1 : 0;
+    }
+
     private void BuildUi()
     {
         _tabs.Dock = DockStyle.Fill;
         _tabs.Font = Theme.Ui;
         _tabs.BackColor = Theme.Bg;
-        StyleTabs(_tabs);
+        _tabs.Appearance = TabAppearance.FlatButtons;
+        _tabs.ItemSize = new Size(0, 1);
+        _tabs.SizeMode = TabSizeMode.Fixed;
 
         _tabs.TabPages.Add(BuildLiveTab());
         _tabs.TabPages.Add(BuildCatalogTab());
@@ -1761,39 +1769,38 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
                 baseArea.Width * Zoom,
                 baseArea.Height * Zoom);
 
-            // Fondo pergamino oscuro estilo mapa del juego con viñeta cálida y retícula cartográfica
+            // Lienzo de pergamino dorado envejecido estilo menú oficial de Ocarina
             using (var bgPath = new System.Drawing.Drawing2D.GraphicsPath())
             {
                 bgPath.AddRectangle(ClientRectangle);
                 using var pgb = new System.Drawing.Drawing2D.PathGradientBrush(bgPath)
                 {
-                    CenterColor = Color.FromArgb(54, 46, 35),
-                    SurroundColors = new[] { Color.FromArgb(26, 22, 17) }
+                    CenterColor = Color.FromArgb(196, 160, 100),
+                    SurroundColors = new[] { Color.FromArgb(136, 102, 52) }
                 };
                 g.FillRectangle(pgb, ClientRectangle);
             }
-            using (var gridPen = new Pen(Color.FromArgb(22, 195, 168, 118), 1f))
-            {
-                int step = 48;
-                for (int gx = 0; gx < ClientRectangle.Width; gx += step)
-                    g.DrawLine(gridPen, gx, 0, gx, ClientRectangle.Height);
-                for (int gy = 0; gy < ClientRectangle.Height; gy += step)
-                    g.DrawLine(gridPen, 0, gy, ClientRectangle.Width, gy);
-            }
-            using (var framePen = new Pen(Color.FromArgb(55, 175, 148, 98), 1f))
-            {
-                g.DrawRectangle(framePen, 6, 6, Math.Max(1, ClientRectangle.Width - 13), Math.Max(1, ClientRectangle.Height - 13));
-            }
+            // Marco superior decorativo marrón oscuro y bordes oscurecidos estilo pergamino
+            using (var topTrim = new SolidBrush(Color.FromArgb(74, 52, 26)))
+                g.FillRectangle(topTrim, 0, 0, ClientRectangle.Width, 6);
+            using (var vignetteLeft = new System.Drawing.Drawing2D.LinearGradientBrush(
+                new Rectangle(0, 0, 26, Math.Max(1, ClientRectangle.Height)),
+                Color.FromArgb(190, 24, 17, 10), Color.Transparent, 0f))
+                g.FillRectangle(vignetteLeft, 0, 0, 26, ClientRectangle.Height);
+            using (var vignetteRight = new System.Drawing.Drawing2D.LinearGradientBrush(
+                new Rectangle(Math.Max(0, ClientRectangle.Width - 26), 0, 26, Math.Max(1, ClientRectangle.Height)),
+                Color.Transparent, Color.FromArgb(190, 24, 17, 10), 0f))
+                g.FillRectangle(vignetteRight, Math.Max(0, ClientRectangle.Width - 26), 0, 26, ClientRectangle.Height);
 
             if (_bgMapImage is not null && image is not null)
             {
                 using var ia = new System.Drawing.Imaging.ImageAttributes();
                 var cm = new System.Drawing.Imaging.ColorMatrix(new[]
                 {
-                    new[] { 0.78f, 0f,    0f,    0f, 0f },
-                    new[] { 0f,    0.68f, 0f,    0f, 0f },
-                    new[] { 0f,    0f,    0.52f, 0f, 0f },
-                    new[] { 0f,    0f,    0f,    0.52f, 0f },
+                    new[] { 0.62f, 0f,    0f,    0f, 0f },
+                    new[] { 0f,    0.50f, 0f,    0f, 0f },
+                    new[] { 0f,    0f,    0.32f, 0f, 0f },
+                    new[] { 0f,    0f,    0f,    0.42f, 0f },
                     new[] { 0f,    0f,    0f,    0f, 1f }
                 });
                 ia.SetColorMatrix(cm);
@@ -2052,6 +2059,8 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
+
 
 
 

@@ -41,7 +41,7 @@ public sealed class MainForm : Form
 
     private TrainerProfile _profile;
     private GameMemory? _memory;
-    private PageId _currentPage = PageId.Cheats;
+    private PageId _currentPage = PageId.Collectibles;
     private bool _disconnectNotified;
     private DateTime _nextAutoReconnectUtc = DateTime.MinValue;
 
@@ -64,7 +64,7 @@ public sealed class MainForm : Form
 
         BuildLayout();
         CreatePages();
-        ShowPage(PageId.Cheats);
+        ShowPage(PageId.Collectibles);
 
         _engine.Message += message => Notify(message);
 
@@ -104,228 +104,117 @@ public sealed class MainForm : Form
 
     // ---------------------------------------------------------------- interfaz
 
+    private readonly List<PageId> _topTabs = new() { PageId.Collectibles, PageId.Stats, PageId.Cheats };
+    private Panel _topBar = null!;
+    private Panel _bottomBar = null!;
+
     private void BuildLayout()
     {
-        var root = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1,
-            BackColor = Theme.Bg,
-            Margin = new Padding(0),
-            Padding = new Padding(0)
-        };
-        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 208f));
-        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-
-        root.Controls.Add(BuildSidebar(), 0, 0);
-        root.Controls.Add(BuildContent(), 1, 0);
+        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = Theme.Bg, Margin = new Padding(0), Padding = new Padding(0) };
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48f));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 40f));
+        root.Controls.Add(BuildTopGameBar(), 0, 0);
+        root.Controls.Add(_pageHost, 0, 1);
+        root.Controls.Add(BuildBottomGameBar(), 0, 2);
         Controls.Add(root);
+
+        KeyDown += (_, e) =>
+        {
+            if (ActiveControl is TextBoxBase or ComboBox) return;
+            if (e.KeyCode == Keys.Q || e.KeyCode == Keys.PageUp) { CycleTopTab(-1); e.Handled = true; }
+            else if (e.KeyCode == Keys.E || e.KeyCode == Keys.PageDown) { CycleTopTab(1); e.Handled = true; }
+        };
     }
 
-    private Control BuildSidebar()
+    private void CycleTopTab(int delta)
     {
-        var sidebar = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Theme.Sidebar,
-            ColumnCount = 1,
-            RowCount = 5,
-            Padding = new Padding(14, 18, 14, 12)
-        };
-        sidebar.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        sidebar.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        sidebar.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        sidebar.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
-        sidebar.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
-        var logo = new Label
-        {
-            Text = "PHYKRO",
-            AutoSize = true,
-            ForeColor = Theme.Accent,
-            Font = Theme.Title,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0)
-        };
-        var sub = new Label
-        {
-            Text = "TRAINER · un jugador",
-            AutoSize = true,
-            ForeColor = Theme.Muted,
-            Font = Theme.Small,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0, 0, 0, 14)
-        };
-        var header = new FlowLayoutPanel
-        {
-            FlowDirection = FlowDirection.TopDown,
-            AutoSize = true,
-            WrapContents = false,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0)
-        };
-        header.Controls.Add(logo);
-        header.Controls.Add(sub);
-        sidebar.Controls.Add(header, 0, 0);
-
-        // Tarjeta de conexión
-        var card = new TableLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            ColumnCount = 1,
-            RowCount = 3,
-            BackColor = Theme.Card,
-            Padding = new Padding(10, 8, 10, 8),
-            Margin = new Padding(0, 0, 0, 12)
-        };
-        for (int row = 0; row < 3; row++) card.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        _connState.AutoSize = true;
-        _connState.Font = Theme.UiBold;
-        _connState.ForeColor = Theme.Muted;
-        _connState.Text = "○ Sin conexión";
-        _connState.BackColor = Color.Transparent;
-
-        _connDetail.AutoSize = true;
-        _connDetail.Font = Theme.Small;
-        _connDetail.ForeColor = Theme.Text;
-        _connDetail.Text = "Abre el juego y conecta";
-        _connDetail.BackColor = Color.Transparent;
-
-        _connBase.AutoSize = true;
-        _connBase.Font = Theme.Small;
-        _connBase.ForeColor = Theme.Muted;
-        _connBase.Text = "";
-        _connBase.BackColor = Color.Transparent;
-
-        card.Controls.Add(_connState, 0, 0);
-        card.Controls.Add(_connDetail, 0, 1);
-        card.Controls.Add(_connBase, 0, 2);
-        sidebar.Controls.Add(card, 0, 1);
-
-        // Navegación
-        var nav = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false,
-            AutoSize = true,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0)
-        };
-
-        AddNav(nav, PageId.Cheats, "Trucos");
-        AddNav(nav, PageId.Scanner, "Escáner");
-        AddNav(nav, PageId.Stats, "Estadísticas");
-        AddNav(nav, PageId.Collectibles, "Coleccionables");
-        AddNav(nav, PageId.Waypoints, "Waypoints");
-        AddNav(nav, PageId.Settings, "Ajustes");
-        AddNav(nav, PageId.Guide, "Guía");
-        sidebar.Controls.Add(nav, 0, 3);
-
-        var footer = new Label
-        {
-            Text = "Solo juegos de un jugador.\nNo usar en online.",
-            AutoSize = true,
-            ForeColor = Theme.Muted,
-            Font = Theme.Small,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0, 8, 0, 0)
-        };
-        sidebar.Controls.Add(footer, 0, 4);
-
-        return sidebar;
+        int idx = _topTabs.IndexOf(_currentPage);
+        if (idx < 0) { ShowPage(PageId.Collectibles); return; }
+        ShowPage(_topTabs[(idx + delta + _topTabs.Count) % _topTabs.Count]);
     }
 
-    private void AddNav(Control parent, PageId page, string text)
+    private Control BuildTopGameBar()
     {
-        var button = new Button
-        {
-            Text = text,
-            TextAlign = ContentAlignment.MiddleLeft,
-            Width = 178,
-            Height = 38,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Theme.Sidebar,
-            ForeColor = Theme.Text,
-            Font = Theme.Ui,
-            Cursor = Cursors.Hand,
-            Margin = new Padding(0, 2, 0, 2),
-            Padding = new Padding(12, 0, 0, 0),
-            UseVisualStyleBackColor = false,
-            FlatAppearance = { BorderSize = 0 }
-        };
+        _topBar = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(54, 40, 22), Margin = new Padding(0), Padding = new Padding(12, 0, 12, 0) };
+        _topBar.Paint += (_, e) => { using var line = new Pen(Color.FromArgb(145, 114, 62), 1.5f); e.Graphics.DrawLine(line, 0, _topBar.Height - 1, _topBar.Width, _topBar.Height - 1); };
+
+        var leftConn = new FlowLayoutPanel { Dock = DockStyle.Left, AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Padding = new Padding(0, 10, 0, 0) };
+        _connState.AutoSize = true; _connState.Font = Theme.Small; _connState.ForeColor = Theme.Gold; _connState.Text = "○ Sin conexión"; _connState.BackColor = Color.Transparent; _connState.Margin = new Padding(0, 4, 8, 0);
+        _processCombo.Width = 140; _processCombo.Margin = new Padding(0, 1, 4, 0);
+        _attachButton.Height = 26; _attachButton.Width = 76; _attachButton.Margin = new Padding(0, 0, 4, 0);
+        _refreshButton.Height = 26; _refreshButton.Width = 30; _refreshButton.Text = "↻"; _refreshButton.Margin = new Padding(0);
+        _refreshButton.Click += (_, _) => RefreshProcessList();
+        _attachButton.Click += (_, _) => ConnectSelected();
+        _processCombo.SelectedIndexChanged += (_, _) => UpdateProcessStatus();
+        leftConn.Controls.AddRange(new Control[] { _connState, _processCombo, _attachButton, _refreshButton });
+
+        var centerTabs = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0), Padding = new Padding(0) };
+        centerTabs.Controls.Add(MakeShoulderButton("LB", () => CycleTopTab(-1)));
+        AddTopNav(centerTabs, PageId.Collectibles, "Mapa");
+        AddTopNav(centerTabs, PageId.Stats, "Estadísticas");
+        AddTopNav(centerTabs, PageId.Cheats, "Trucos");
+        centerTabs.Controls.Add(MakeShoulderButton("RB", () => CycleTopTab(1)));
+
+        _topBar.Controls.Add(leftConn);
+        _topBar.Controls.Add(centerTabs);
+        void CenterMenu() { centerTabs.Location = new Point(Math.Max(leftConn.Right + 12, (_topBar.Width - centerTabs.Width) / 2), 0); }
+        _topBar.Resize += (_, _) => CenterMenu();
+        centerTabs.Resize += (_, _) => CenterMenu();
+        return _topBar;
+    }
+
+    private static Button MakeShoulderButton(string label, Action onClick)
+    {
+        var btn = new Button { Text = label, Width = 34, Height = 22, FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(236, 226, 200), ForeColor = Color.FromArgb(46, 34, 18), Font = new Font("Segoe UI", 8f, FontStyle.Bold), Cursor = Cursors.Hand, Margin = new Padding(10, 13, 10, 0), UseVisualStyleBackColor = false, FlatAppearance = { BorderSize = 0 } };
+        btn.Click += (_, _) => onClick();
+        return btn;
+    }
+
+    private void AddTopNav(Control parent, PageId page, string text)
+    {
+        var button = new Button { Text = text, TextAlign = ContentAlignment.MiddleCenter, Width = 132, Height = 47, FlatStyle = FlatStyle.Flat, BackColor = Color.Transparent, ForeColor = Color.FromArgb(245, 236, 214), Font = new Font("Georgia", 11.5f, FontStyle.Bold), Cursor = Cursors.Hand, Margin = new Padding(4, 0, 4, 0), UseVisualStyleBackColor = false, FlatAppearance = { BorderSize = 0, MouseOverBackColor = Color.FromArgb(82, 61, 31) } };
         button.Click += (_, _) => ShowPage(page);
         parent.Controls.Add(button);
         _navButtons[page] = button;
     }
 
-    private Control BuildContent()
+    private Control BuildBottomGameBar()
     {
-        var content = new TableLayoutPanel
+        _bottomBar = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(46, 34, 19), Margin = new Padding(0), Padding = new Padding(14, 0, 16, 0) };
+        _bottomBar.Paint += (_, e) => { using var line = new Pen(Color.FromArgb(132, 102, 56), 1f); e.Graphics.DrawLine(line, 0, 0, _bottomBar.Width, 0); };
+
+        _status.AutoSize = false; _status.Dock = DockStyle.Fill; _status.TextAlign = ContentAlignment.MiddleLeft; _status.ForeColor = Theme.Muted; _status.Font = Theme.Small; _status.Text = "Listo. Abre el juego y pulsa Conectar."; _status.BackColor = Color.Transparent;
+        var rightActions = new FlowLayoutPanel { Dock = DockStyle.Right, AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Padding = new Padding(0, 6, 0, 0) };
+
+        AddBottomAction(rightActions, "Catálogo / Hyrule", "X", () => { ShowPage(PageId.Collectibles); _collectiblesPage.ToggleCatalogView(); });
+        AddBottomAction(rightActions, "Escáner", "Y", () => ShowPage(PageId.Scanner));
+        AddBottomAction(rightActions, "Waypoints", "W", () => ShowPage(PageId.Waypoints));
+        AddBottomAction(rightActions, "Ajustes", "S", () => ShowPage(PageId.Settings));
+        AddBottomAction(rightActions, "Guía", "?", () => ShowPage(PageId.Guide));
+
+        _bottomBar.Controls.Add(_status);
+        _bottomBar.Controls.Add(rightActions);
+        return _bottomBar;
+    }
+
+    private static void AddBottomAction(Control parent, string label, string keyBadge, Action onClick)
+    {
+        var panel = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Cursor = Cursors.Hand, Margin = new Padding(12, 0, 0, 0) };
+        var lbl = new Label { Text = label, AutoSize = true, ForeColor = Color.FromArgb(245, 236, 214), Font = new Font("Georgia", 10f, FontStyle.Bold), BackColor = Color.Transparent, Cursor = Cursors.Hand, Margin = new Padding(0, 4, 5, 0) };
+        var badge = new Label { Text = keyBadge, Width = 22, Height = 22, BackColor = Color.Transparent, Cursor = Cursors.Hand, Margin = new Padding(0, 2, 0, 0) };
+        badge.Paint += (_, e) =>
         {
-            Dock = DockStyle.Fill,
-            BackColor = Theme.Bg,
-            ColumnCount = 1,
-            RowCount = 3,
-            Padding = new Padding(18, 12, 18, 6)
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using var b = new SolidBrush(Color.FromArgb(244, 236, 214));
+            e.Graphics.FillEllipse(b, 0, 0, badge.Width - 1, badge.Height - 1);
+            using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            using var tb = new SolidBrush(Color.FromArgb(44, 33, 18));
+            using var f = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+            e.Graphics.DrawString(keyBadge, f, tb, new RectangleF(0, 0, badge.Width, badge.Height), sf);
         };
-        content.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        content.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
-        content.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
-        var processBar = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            WrapContents = true,
-            BackColor = Theme.Card,
-            Padding = new Padding(10, 8, 10, 8),
-            Margin = new Padding(0, 0, 0, 10)
-        };
-        processBar.Controls.Add(Ui.Label("Juego:", muted: true));
-        processBar.Controls.Add(_processCombo);
-        processBar.Controls.Add(_refreshButton);
-        processBar.Controls.Add(_attachButton);
-        processBar.Controls.Add(_processStatus);
-        _processStatus.Margin = new Padding(8, 8, 0, 0);
-
-        _refreshButton.Click += (_, _) => RefreshProcessList();
-        _attachButton.Click += (_, _) => ConnectSelected();
-        _processCombo.SelectedIndexChanged += (_, _) => UpdateProcessStatus();
-
-        content.Controls.Add(processBar, 0, 0);
-        content.Controls.Add(_pageHost, 0, 1);
-
-        var statusBar = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 26,
-            BackColor = Color.Transparent
-        };
-        _status.AutoSize = false;
-        _status.Dock = DockStyle.Fill;
-        _status.TextAlign = ContentAlignment.MiddleLeft;
-        _status.ForeColor = Theme.Muted;
-        _status.Font = Theme.Small;
-        _status.Text = "Listo. Abre el juego y pulsa Conectar.";
-        _status.BackColor = Color.Transparent;
-
-        _hints.AutoSize = true;
-        _hints.Dock = DockStyle.Right;
-        _hints.TextAlign = ContentAlignment.MiddleRight;
-        _hints.ForeColor = Theme.Muted;
-        _hints.Font = Theme.Small;
-        _hints.Text = "Ctrl+Alt+T oculta/muestra · F9 guarda waypoint · F10 teletransporta";
-        _hints.BackColor = Color.Transparent;
-        _hints.Padding = new Padding(8, 4, 0, 0);
-
-        statusBar.Controls.Add(_status);
-        statusBar.Controls.Add(_hints);
-        content.Controls.Add(statusBar, 0, 2);
-
-        return content;
+        panel.Click += (_, _) => onClick(); lbl.Click += (_, _) => onClick(); badge.Click += (_, _) => onClick();
+        panel.Controls.Add(lbl); panel.Controls.Add(badge); parent.Controls.Add(panel);
     }
 
     private void CreatePages()
@@ -338,26 +227,11 @@ public sealed class MainForm : Form
         var settings = new SettingsPage(this);
         var guide = new GuidePage(this);
 
-        _pages[PageId.Cheats] = cheats;
-        _pages[PageId.Scanner] = scanner;
-        _pages[PageId.Stats] = stats;
-        _pages[PageId.Collectibles] = collectibles;
-        _pages[PageId.Waypoints] = waypoints;
-        _pages[PageId.Settings] = settings;
-        _pages[PageId.Guide] = guide;
+        _pages[PageId.Cheats] = cheats; _pages[PageId.Scanner] = scanner; _pages[PageId.Stats] = stats;
+        _pages[PageId.Collectibles] = collectibles; _pages[PageId.Waypoints] = waypoints; _pages[PageId.Settings] = settings; _pages[PageId.Guide] = guide;
 
-        foreach (TrainerPage page in _pages.Values)
-        {
-            page.Visible = false;
-            _pageHost.Controls.Add(page);
-        }
-
-        _cheatsPage = cheats;
-        _scannerPage = scanner;
-        _statsPage = stats;
-        _collectiblesPage = collectibles;
-        _waypointsPage = waypoints;
-        _settingsPage = settings;
+        foreach (TrainerPage page in _pages.Values) { page.Visible = false; _pageHost.Controls.Add(page); }
+        _cheatsPage = cheats; _scannerPage = scanner; _statsPage = stats; _collectiblesPage = collectibles; _waypointsPage = waypoints; _settingsPage = settings;
     }
 
     private CheatsPage _cheatsPage = null!;
@@ -370,22 +244,14 @@ public sealed class MainForm : Form
     public void ShowPage(PageId page)
     {
         _currentPage = page;
-        foreach ((PageId id, TrainerPage control) in _pages)
-        {
-            control.Visible = id == page;
-            if (id == page) control.BringToFront();
-        }
-
+        foreach ((PageId id, TrainerPage control) in _pages) { control.Visible = id == page; if (id == page) control.BringToFront(); }
         foreach ((PageId id, Button button) in _navButtons)
         {
             bool selected = id == page;
-            button.BackColor = selected ? Theme.CardAlt : Theme.Sidebar;
-            button.ForeColor = selected ? Theme.Accent : Theme.Text;
-            button.Font = selected ? Theme.UiBold : Theme.Ui;
-        }
-    }
-
-    // ---------------------------------------------------------------- conexión
+            button.BackColor = selected ? Color.FromArgb(106, 78, 38) : Color.Transparent;
+button.ForeColor = selected ? Color.FromArgb(255, 246, 224) : Color.FromArgb(236, 224, 198);
+}
+}    // ---------------------------------------------------------------- conexión
 
     private void OnLoaded()
     {
@@ -760,7 +626,7 @@ public sealed class MainForm : Form
         _cheatsPage.OnProfileChanged();
         RegisterHotkeys();
         SaveConfig();
-        ShowPage(PageId.Cheats);
+        ShowPage(PageId.Collectibles);
         SetStatus($"Añadidos {list.Count} truco(s). Revisa la dirección y asigna un atajo si quieres.");
     }
 
@@ -856,5 +722,7 @@ public sealed class MainForm : Form
         public override string ToString() => $"{Name}  (PID {Id})";
     }
 }
+
+
 
 
