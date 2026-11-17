@@ -82,8 +82,8 @@ public sealed class CollectiblesPage : TrainerPage
     private readonly Label _count = Ui.Hint("");
     private readonly Label _liveCount = Ui.Hint("");
     private readonly Label _hudZoneTitle = new() { AutoSize = true, ForeColor = Color.FromArgb(236, 224, 198), Font = new Font("Georgia", 15f, FontStyle.Bold), BackColor = Color.Transparent };
-    private readonly CheckBox _hudOnlyMissing = new() { Text = "Solo pendientes", AutoSize = true, ForeColor = Color.FromArgb(215, 205, 185), Font = Theme.Small, BackColor = Color.Transparent, Margin = new Padding(10, 6, 0, 0), Cursor = Cursors.Hand };
-    private readonly FlowLayoutPanel _hudBadges = new() { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(12, 2, 0, 0) };
+    private readonly CheckBox _hudOnlyMissing = new() { Text = "Solo pendientes", AutoSize = true, ForeColor = Color.FromArgb(215, 205, 185), Font = Theme.Small, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, 6), Cursor = Cursors.Hand };
+    private readonly FlowLayoutPanel _hudBadges = new() { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
     private readonly Panel _detailCard = new() { Visible = false, BackColor = Color.FromArgb(238, 22, 25, 31), Padding = new Padding(12), Width = 340, AutoSize = true, MaximumSize = new Size(360, 420) };
     private readonly Label _detailTitle = Ui.Label("", bold: true);
     private readonly FlowLayoutPanel _detailList = new() { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, MaximumSize = new Size(330, 340), AutoScroll = true, BackColor = Color.Transparent };
@@ -162,7 +162,6 @@ public sealed class CollectiblesPage : TrainerPage
         _age.Margin = new Padding(10, 7, 0, 0);
         _age.ForeColor = Theme.Gold;
         header.Controls.Add(_age);
-        header.Controls.Add(_hudBadges);
 
         var rightControls = new FlowLayoutPanel { Dock = DockStyle.Right, AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
         var floorLbl = Ui.Label("Piso:", muted: true, bold: true);
@@ -180,32 +179,34 @@ public sealed class CollectiblesPage : TrainerPage
         topBar.Controls.Add(rightControls);
         layout.Controls.Add(topBar, 0, 0);
 
-        var mapHost = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Card, Padding = new Padding(4) };
+        // Fondo cálido estilo pergamino oscuro del juego
+        Color gameMapBg = Color.FromArgb(28, 25, 20);
+        var mapHost = new Panel { Dock = DockStyle.Fill, BackColor = gameMapBg, Padding = new Padding(4) };
         _map.Dock = DockStyle.Fill;
-        _map.BackColor = Theme.Card;
+        _map.BackColor = gameMapBg;
 
         var detailHeader = new Panel { Dock = DockStyle.Top, Height = 26, BackColor = Color.Transparent };
         _detailTitle.Dock = DockStyle.Left;
         _detailTitle.AutoSize = true;
         _detailTitle.ForeColor = Theme.Gold;
         var closeBtn = new Label { Text = "✕", Dock = DockStyle.Right, Width = 22, TextAlign = ContentAlignment.MiddleCenter, ForeColor = Theme.Muted, Cursor = Cursors.Hand, Font = Theme.UiBold };
-        closeBtn.Click += (_, _) => { _detailCard.Visible = false; _activeHudType = null; RefreshHudBadges(); };
+        closeBtn.Click += (_, _) => { _detailCard.Visible = false; _activeHudType = null; };
         detailHeader.Controls.Add(_detailTitle);
         detailHeader.Controls.Add(closeBtn);
 
         _detailList.Dock = DockStyle.Top;
+        _detailCard.BackColor = Color.FromArgb(242, 26, 23, 18);
         _detailCard.Controls.Clear();
         _detailCard.Controls.Add(_detailList);
         _detailCard.Controls.Add(detailHeader);
-        _detailCard.Location = new Point(14, 14);
-        _detailCard.Paint += (_, e) => { using var pen = new Pen(Color.FromArgb(140, 120, 82), 1.5f); e.Graphics.DrawRectangle(pen, 0, 0, _detailCard.Width - 1, _detailCard.Height - 1); };
+        _detailCard.Paint += (_, e) => { using var pen = new Pen(Color.FromArgb(165, 138, 86), 1.5f); e.Graphics.DrawRectangle(pen, 0, 0, _detailCard.Width - 1, _detailCard.Height - 1); };
 
         var hudOverlay = new Panel
         {
             Location = new Point(16, 12),
             AutoSize = true,
-            BackColor = Color.FromArgb(190, 18, 20, 26),
-            Padding = new Padding(10, 6, 12, 8)
+            BackColor = Color.FromArgb(205, 22, 20, 16),
+            Padding = new Padding(10, 8, 12, 8)
         };
         var hudStack = new FlowLayoutPanel
         {
@@ -214,23 +215,24 @@ public sealed class CollectiblesPage : TrainerPage
             AutoSize = true,
             BackColor = Color.Transparent
         };
-        var goldLine = new Panel { Height = 2, Width = 210, BackColor = Color.FromArgb(195, 165, 95), Margin = new Padding(0, 2, 0, 6) };
-        _hudBadges.Margin = new Padding(0);
-        var hudRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
+        var goldLine = new Panel { Height = 2, Width = 175, BackColor = Color.FromArgb(195, 165, 95), Margin = new Padding(0, 2, 0, 6) };
         _hudOnlyMissing.CheckedChanged += (_, _) => _map.Invalidate();
-        hudRow.Controls.Add(_hudBadges);
-        hudRow.Controls.Add(_hudOnlyMissing);
+
         hudStack.Controls.Add(_hudZoneTitle);
         hudStack.Controls.Add(goldLine);
-        hudStack.Controls.Add(hudRow);
+        hudStack.Controls.Add(_hudOnlyMissing);
+        hudStack.Controls.Add(_hudBadges);
         hudOverlay.Controls.Add(hudStack);
 
-        _detailCard.Location = new Point(16, 98);
+        // Tarjeta desplegable situada justo a la derecha de las etiquetas verticales
+        _detailCard.Location = new Point(215, 12);
+
         mapHost.Controls.Add(hudOverlay);
         mapHost.Controls.Add(_detailCard);
         mapHost.Controls.Add(_map);
         hudOverlay.BringToFront();
         _detailCard.BringToFront();
+
         layout.Controls.Add(mapHost, 0, 1);
         page.Controls.Add(layout);
         return page;
@@ -518,7 +520,7 @@ public sealed class CollectiblesPage : TrainerPage
         {
             Width = 86,
             Height = 28,
-            Margin = new Padding(6, 1, 0, 1),
+            Margin = new Padding(0, 0, 0, 5),
             BackColor = Color.FromArgb(46, 42, 36),
             Cursor = Cursors.Hand
         };
@@ -603,39 +605,45 @@ public sealed class CollectiblesPage : TrainerPage
         {
             bool isSel = row.Dto.Id == (highlightId ?? _map.SelectedId);
             string badgeStatus = row.Estado == "Conseguida" ? "✓ Conseguida" : "• Pendiente";
+
+            var rowTable = new TableLayoutPanel
+            {
+                Width = 316,
+                AutoSize = true,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = isSel ? Color.FromArgb(68, 58, 40) : Color.FromArgb(36, 32, 26),
+                Margin = new Padding(0, 5, 0, 0),
+                Padding = new Padding(6, 5, 6, 5)
+            };
+            rowTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            rowTable.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
             var itemLabel = new Label
             {
                 Text = $"{row.Nombre}  [{badgeStatus}]\n{row.Dto.UbicacionExacta}",
                 ForeColor = row.Estado == "Conseguida" ? Color.FromArgb(120, 220, 130) : Theme.Text,
-                BackColor = isSel ? Color.FromArgb(62, 56, 44) : Color.FromArgb(32, 36, 44),
+                BackColor = Color.Transparent,
                 Font = Theme.Small,
-                Padding = new Padding(8, 6, 8, 6),
-                Margin = new Padding(0, 4, 0, 0),
-                Width = 310,
                 AutoSize = true,
-                MaximumSize = new Size(310, 0),
+                MaximumSize = new Size(230, 0),
                 Cursor = Cursors.Hand
             };
-
-            var rowPanel = new Panel { Width = 314, AutoSize = true, BackColor = itemLabel.BackColor, Margin = new Padding(0, 4, 0, 0), Padding = new Padding(0, 0, 6, 0) };
-            itemLabel.Width = 246;
-            itemLabel.MaximumSize = new Size(246, 0);
-            itemLabel.Margin = new Padding(0);
-            itemLabel.Dock = DockStyle.Left;
 
             var tpBtn = new Button
             {
                 Text = "Ir aquí",
-                Width = 58,
+                Width = 62,
                 Height = 26,
-                Dock = DockStyle.Right,
+                Anchor = AnchorStyles.Right,
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(68, 58, 40),
+                BackColor = Color.FromArgb(74, 62, 40),
                 ForeColor = Theme.Gold,
                 Font = Theme.Small,
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                Margin = new Padding(6, 2, 0, 0)
             };
-            tpBtn.FlatAppearance.BorderColor = Color.FromArgb(145, 120, 74);
+            tpBtn.FlatAppearance.BorderColor = Color.FromArgb(155, 128, 76);
 
             CollectibleDto targetDto = row.Dto;
             string rowId = row.Dto.Id;
@@ -651,16 +659,15 @@ public sealed class CollectiblesPage : TrainerPage
                 TeleportToCollectible(targetDto);
             };
 
-            rowPanel.Controls.Add(itemLabel);
-            rowPanel.Controls.Add(tpBtn);
-            _detailList.Controls.Add(rowPanel);
+            rowTable.Controls.Add(itemLabel, 0, 0);
+            rowTable.Controls.Add(tpBtn, 1, 0);
+            _detailList.Controls.Add(rowTable);
         }
 
         _detailList.ResumeLayout(false);
         _detailCard.Visible = true;
         _detailCard.BringToFront();
     }
-
     private void TeleportToCollectible(CollectibleDto dto)
     {
         if (Host.Memory is not { } memory)
@@ -1606,6 +1613,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
