@@ -1805,7 +1805,16 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
 
             if (LinkPosition is { } linkPos)
             {
-                DrawLinkArrow(g, MapX(linkPos.X), MapZ(linkPos.Z), LinkAngle);
+                bool sameFloor = true;
+                if (FloorSlots.Count > 1 && !string.IsNullOrEmpty(LinkFloorTag))
+                {
+                    var viewingSlot = FloorSlots.FirstOrDefault(s => s.FloorIndex == ViewingFloorIndex);
+                    if (!string.IsNullOrEmpty(viewingSlot.Tag))
+                        sameFloor = viewingSlot.Tag.Equals(LinkFloorTag, StringComparison.OrdinalIgnoreCase);
+                }
+
+                if (sameFloor)
+                    DrawLinkArrow(g, MapX(linkPos.X), MapZ(linkPos.Z), LinkAngle);
             }
         }
 
@@ -2015,6 +2024,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
