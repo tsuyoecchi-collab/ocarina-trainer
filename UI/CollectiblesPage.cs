@@ -1037,10 +1037,14 @@ public sealed class CollectiblesPage : TrainerPage
         }
 
         string? autoFloor = DetectFloorTag(_currentBanc, ReadLinkY(memory));
-        if (autoFloor is not null && autoFloor != _lastAutoFloor)
+        if (autoFloor is not null)
         {
-            _lastAutoFloor = autoFloor;
-            SelectFloorByTag(autoFloor);
+            string currentLabel = _floor.SelectedItem?.ToString() ?? "";
+            if (autoFloor != _lastAutoFloor || !currentLabel.Contains(autoFloor, StringComparison.OrdinalIgnoreCase))
+            {
+                _lastAutoFloor = autoFloor;
+                SelectFloorByTag(autoFloor);
+            }
         }
 
         // Solo los pines del mapa actual (nunca los 185 amontonados).
@@ -1151,6 +1155,11 @@ public sealed class CollectiblesPage : TrainerPage
             if (itemText.Contains(tag, StringComparison.OrdinalIgnoreCase))
             {
                 if (_floor.SelectedIndex != i) _floor.SelectedIndex = i;
+                if (i < _floorPaths.Count && _map.TextureOverride != _floorPaths[i])
+                {
+                    _map.TextureOverride = _floorPaths[i];
+                    _map.ReloadMap();
+                }
                 return;
             }
         }
@@ -1857,6 +1866,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
