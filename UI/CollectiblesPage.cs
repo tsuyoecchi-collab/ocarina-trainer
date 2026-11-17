@@ -1614,6 +1614,10 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
                     if (dir is not null && prefix.Length > 0)
                     {
                         string allPath = Path.Combine(dir, prefix + "_All.png");
+                        if (fn.Contains("_State01_", StringComparison.OrdinalIgnoreCase) && File.Exists(Path.Combine(dir, prefix + "_State01_All.png")))
+                            allPath = Path.Combine(dir, prefix + "_State01_All.png");
+                        else if (fn.Contains("_State00_", StringComparison.OrdinalIgnoreCase) && File.Exists(Path.Combine(dir, prefix + "_State00_All.png")))
+                            allPath = Path.Combine(dir, prefix + "_State00_All.png");
                         if (!File.Exists(allPath))
                             allPath = Directory.EnumerateFiles(dir, prefix + "*_All.png").FirstOrDefault() ?? "";
                         if (File.Exists(allPath))
@@ -1757,16 +1761,40 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
                 baseArea.Width * Zoom,
                 baseArea.Height * Zoom);
 
+            // Fondo pergamino oscuro estilo mapa del juego con viñeta cálida y retícula cartográfica
+            using (var bgPath = new System.Drawing.Drawing2D.GraphicsPath())
+            {
+                bgPath.AddRectangle(ClientRectangle);
+                using var pgb = new System.Drawing.Drawing2D.PathGradientBrush(bgPath)
+                {
+                    CenterColor = Color.FromArgb(54, 46, 35),
+                    SurroundColors = new[] { Color.FromArgb(26, 22, 17) }
+                };
+                g.FillRectangle(pgb, ClientRectangle);
+            }
+            using (var gridPen = new Pen(Color.FromArgb(22, 195, 168, 118), 1f))
+            {
+                int step = 48;
+                for (int gx = 0; gx < ClientRectangle.Width; gx += step)
+                    g.DrawLine(gridPen, gx, 0, gx, ClientRectangle.Height);
+                for (int gy = 0; gy < ClientRectangle.Height; gy += step)
+                    g.DrawLine(gridPen, 0, gy, ClientRectangle.Width, gy);
+            }
+            using (var framePen = new Pen(Color.FromArgb(55, 175, 148, 98), 1f))
+            {
+                g.DrawRectangle(framePen, 6, 6, Math.Max(1, ClientRectangle.Width - 13), Math.Max(1, ClientRectangle.Height - 13));
+            }
+
             if (_bgMapImage is not null && image is not null)
             {
                 using var ia = new System.Drawing.Imaging.ImageAttributes();
                 var cm = new System.Drawing.Imaging.ColorMatrix(new[]
                 {
-                    new[] { 0.55f, 0f, 0f, 0f, 0f },
-                    new[] { 0f, 0.48f, 0f, 0f, 0f },
-                    new[] { 0f, 0f, 0.38f, 0f, 0f },
-                    new[] { 0f, 0f, 0f, 0.30f, 0f },
-                    new[] { 0f, 0f, 0f, 0f, 1f }
+                    new[] { 0.78f, 0f,    0f,    0f, 0f },
+                    new[] { 0f,    0.68f, 0f,    0f, 0f },
+                    new[] { 0f,    0f,    0.52f, 0f, 0f },
+                    new[] { 0f,    0f,    0f,    0.52f, 0f },
+                    new[] { 0f,    0f,    0f,    0f, 1f }
                 });
                 ia.SetColorMatrix(cm);
                 g.DrawImage(_bgMapImage,
@@ -2024,6 +2052,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
