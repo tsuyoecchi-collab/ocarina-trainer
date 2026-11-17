@@ -980,7 +980,7 @@ public sealed class CollectiblesPage : TrainerPage
         }
 
         string? mapName = GameFlagsReader.ReadText64(memory, "Sequence_CurrentBanc");
-        _mapState.Text = string.IsNullOrEmpty(mapName) ? "Mapa: â€”" : $"Mapa: {mapName}";
+        float? liveY = ReadLinkY(memory); _mapState.Text = string.IsNullOrEmpty(mapName) ? "Mapa: —" : (liveY is { } yv ? $"Mapa: {mapName}  (Y: {yv:0.0})" : $"Mapa: {mapName}");
 
         if (_calibration.Count == 0 && GameMapExtractor.IsExtracted(AppContext.BaseDirectory))
         {
@@ -1134,12 +1134,7 @@ public sealed class CollectiblesPage : TrainerPage
         if (string.IsNullOrEmpty(banc) || y is not { } py) return null;
         string b = banc.Replace("_Child", "").Replace("_Adult", "");
         if (b.Equals("InsideTheDekuTree", StringComparison.OrdinalIgnoreCase))
-        {
-            // Escala estándar OoT 3D (1F ≈ 0..380, 2F ≈ 380..760, 3F >= 760, B1 ≈ -760..-20, B2 < -760)
-            // y respaldo si Y viene escalada x10 (3800/7600)
-            float ay = MathF.Abs(py) > 2500f ? py / 10f : py;
-            return ay >= 760f ? "3F" : ay >= 380f ? "2F" : ay >= -40f ? "1F" : ay >= -760f ? "B1" : "B2";
-        }
+            return py >= 15.5f ? "3F" : py >= 7.5f ? "2F" : py >= -1.5f ? "1F" : py >= -15.5f ? "B1" : "B2";
         if (b.Equals("DodongoCavern", StringComparison.OrdinalIgnoreCase))
             return py >= 108f ? "2F" : "1F";
         if (b.Equals("InsideJabuJabuBelly", StringComparison.OrdinalIgnoreCase))
@@ -1164,7 +1159,8 @@ public sealed class CollectiblesPage : TrainerPage
         for (int i = 0; i < _floor.Items.Count; i++)
         {
             string itemText = _floor.Items[i]?.ToString() ?? "";
-            if (itemText.Contains(tag, StringComparison.OrdinalIgnoreCase))
+            string fileText = i < _floorPaths.Count ? Path.GetFileNameWithoutExtension(_floorPaths[i]) : "";
+            if (itemText.Contains(tag, StringComparison.OrdinalIgnoreCase) || fileText.Contains("_" + tag + "_", StringComparison.OrdinalIgnoreCase) || fileText.EndsWith("_" + tag, StringComparison.OrdinalIgnoreCase))
             {
                 if (_floor.SelectedIndex != i) _floor.SelectedIndex = i;
                 if (i < _floorPaths.Count && _map.TextureOverride != _floorPaths[i])
@@ -1878,6 +1874,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
