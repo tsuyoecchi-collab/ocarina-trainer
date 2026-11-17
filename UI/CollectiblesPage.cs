@@ -639,13 +639,13 @@ public sealed class CollectiblesPage : TrainerPage
     {
         if (tipo.Contains("Skulltula", StringComparison.OrdinalIgnoreCase)) return "Skulltulas";
         if (tipo.Contains("Corazón", StringComparison.OrdinalIgnoreCase)) return "Piezas de Corazón";
-        if (tipo.Contains("Frijol", StringComparison.OrdinalIgnoreCase)) return "Frijoles Mágicos";
+        if (tipo.Contains("Frijol", StringComparison.OrdinalIgnoreCase)) return "Frijoles Mágicos"; if (tipo.Contains("Cofre", StringComparison.OrdinalIgnoreCase)) return "Cofres";
         return "Hojas Mágicas";
     }
 
     private void RefreshHudBadges()
     {
-        string[] cats = { "Skulltulas", "Piezas de Corazón", "Frijoles Mágicos", "Hojas Mágicas" };
+        string[] cats = { "Skulltulas", "Piezas de Corazón", "Frijoles Mágicos", "Cofres", "Hojas Mágicas" };
         var parts = new List<string>();
         foreach (string cat in cats)
         {
@@ -725,6 +725,14 @@ public sealed class CollectiblesPage : TrainerPage
                 innerPath.AddLine(inX - s * 0.56f, cy + s * 0.24f, inX, cy + s * 0.72f);
                 innerPath.CloseFigure();
                 e.Graphics.FillPath(rubyFill, innerPath);
+            }
+            else if (category == "Cofres")
+            {
+                using var wood = new SolidBrush(Color.FromArgb(164, 108, 48));
+                using var goldTrim = new Pen(Color.FromArgb(245, 206, 96), 1.4f);
+                e.Graphics.FillRectangle(wood, cx - 7, cy - 5, 14, 10);
+                e.Graphics.DrawRectangle(goldTrim, cx - 7, cy - 5, 14, 10);
+                e.Graphics.DrawLine(goldTrim, cx - 7, cy - 1, cx + 7, cy - 1);
             }
             else
             {
@@ -2059,6 +2067,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 

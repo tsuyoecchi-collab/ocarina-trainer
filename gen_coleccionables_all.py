@@ -84,8 +84,64 @@ for idx, x in enumerate(hp_list, 1):
         "Hash": f"{h:016x}", "DireccionBit": "", "Bit": 0
     })
 
+# 3. Los 73 Frijoles Mágicos
+fm_list = [x for x in maestro if x.get("Tipo") == "Frijol Mágico"]
+fm_list.sort(key=lambda x: (x["Mapa"], -x["WorldY"], x["WorldX"]))
+fm_counts = {}
+for idx, x in enumerate(fm_list, 1):
+    base = x["Mapa"]
+    if base not in ZONES: continue
+    h = int(x["ActorHash"])
+    zona = ZONES[base]
+    fm_counts[zona] = fm_counts.get(zona, 0) + 1
+    piso = floor_tag(base, x["WorldY"])
+    piso_txt = f" · Piso {piso}" if piso else ""
+    items_out.append({
+        "Id": f"fm_{h:016x}", "Zona": zona, "Mapa": base, "Tipo": "Frijol Mágico",
+        "Nombre": f"Frijol Mágico #{fm_counts[zona]:02d} ({zona})",
+        "UbicacionExacta": f"{zona}{piso_txt} (X: {x['WorldX']}, Y: {x['WorldY']}, Z: {x['WorldZ']})",
+        "Epoca": x["Epoca"], "WorldX": x["WorldX"], "WorldY": x["WorldY"], "WorldZ": x["WorldZ"],
+        "Hash": f"{h:016x}", "DireccionBit": "", "Bit": 0
+    })
+
+# 4. Cofres del Tesoro (desde coleccionables_extraidos.json)
+extraidos = json.load(open(r"E:\OcarinaRemake\coleccionables_extraidos.json", encoding="utf-8"))
+CHEST_GYAMLS = {
+    "Obj_TBox_A_01", "Obj_TBox_A_02", "Obj_TBox_A_03", "Obj_TBox_A_04", "Obj_TBox_A_06",
+    "Obj_TBox_A_01_NoBake", "Obj_TBox_A_02_NoBake", "Obj_TBox_A_03_NoBake", "Obj_TBox_A_06_NoBake",
+    "Obj_TBox_GlassTruth_A_01", "Obj_TBox_A_01_memo11", "TBox_Rupee_Red"
+}
+chest_by_hash = {}
+for x in extraidos:
+    if x.get("Gyaml") not in CHEST_GYAMLS: continue
+    h = int(x["Hash"])
+    if h not in chest_by_hash:
+        chest_by_hash[h] = x
+
+chest_list = sorted(chest_by_hash.values(), key=lambda x: (x["Mapa"], -x["WorldY"], x["WorldX"]))
+chest_counts = {}
+for x in chest_list:
+    base = x["Mapa"]
+    if base not in ZONES: continue
+    h = int(x["Hash"])
+    zona = ZONES[base]
+    chest_counts[zona] = chest_counts.get(zona, 0) + 1
+    piso = floor_tag(base, x["WorldY"])
+    piso_txt = f" · Piso {piso}" if piso else ""
+    ep_raw = x.get("Epoca", "Ambos")
+    epoca = "Niño / Adulto" if ep_raw in ("Ambos", "") else ep_raw
+    items_out.append({
+        "Id": f"tb_{h:016x}", "Zona": zona, "Mapa": base, "Tipo": "Cofre",
+        "Nombre": f"Cofre #{chest_counts[zona]:02d} ({zona})",
+        "UbicacionExacta": f"{zona}{piso_txt} (X: {x['WorldX']}, Y: {x['WorldY']}, Z: {x['WorldZ']})",
+        "Epoca": epoca, "WorldX": x["WorldX"], "WorldY": x["WorldY"], "WorldZ": x["WorldZ"],
+        "Hash": f"{h:016x}", "DireccionBit": "", "Bit": 0
+    })
+
 for out_path in [r"dist\coleccionables.json", os.path.join(os.environ["APPDATA"], "PhykroTrainer", "coleccionables.json")]:
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(items_out, f, indent=2, ensure_ascii=False)
-print(f"Total escritos: {len(items_out)} (100 Skulltulas + {len(hp_list)} Piezas de Corazón).")
+print(f"Total escritos: {len(items_out)} (100 Skulltulas + {len(hp_list)} Piezas de Corazón + {len(fm_list)} Frijoles Mágicos + {len(chest_list)} Cofres).")
+
+
