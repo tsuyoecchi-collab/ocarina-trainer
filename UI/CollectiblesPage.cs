@@ -1063,7 +1063,7 @@ public sealed class CollectiblesPage : TrainerPage
         if (_manualFloorLockPos is { } lockPos && _latestLinkPos3D is { } curPos)
         {
             float moved = MathF.Abs(curPos.X - lockPos.X) + MathF.Abs(curPos.Y - lockPos.Y) + MathF.Abs(curPos.Z - lockPos.Z);
-            if (moved > 15.0f)
+            if (moved > 0.8f)
                 _manualFloorLockPos = null;
         }
 
@@ -2015,6 +2015,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
