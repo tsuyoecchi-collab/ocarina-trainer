@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using PhykroTrainer.Core;
 
 namespace PhykroTrainer.UI;
@@ -43,6 +43,7 @@ public sealed class MainForm : Form
     private GameMemory? _memory;
     private PageId _currentPage = PageId.Cheats;
     private bool _disconnectNotified;
+    private DateTime _nextAutoReconnectUtc = DateTime.MinValue;
 
     public MainForm()
     {
@@ -576,15 +577,69 @@ public sealed class MainForm : Form
         if (_memory is not null && !_memory.IsAlive)
         {
             HandleDisconnect();
+            _nextAutoReconnectUtc = DateTime.UtcNow.AddSeconds(1.5);
             return;
         }
 
-        if (_memory is null) return;
+        if (_memory is null)
+        {
+            if (DateTime.UtcNow >= _nextAutoReconnectUtc)
+            {
+                _nextAutoReconnectUtc = DateTime.UtcNow.AddSeconds(1.5);
+                TryAutoReconnect();
+            }
+            return;
+        }
 
         _cheatsPage.OnTick();
         _waypointsPage.OnTick();
         _statsPage.OnTick();
         _collectiblesPage.OnTick();
+    }
+
+    private void TryAutoReconnect()
+    {
+        string wanted = _profile.ProcessName;
+        if (string.IsNullOrWhiteSpace(wanted)) return;
+
+        Process? match = null;
+        foreach (Process p in Process.GetProcesses())
+        {
+            try
+            {
+                if (p.Id != Environment.ProcessId && ProcessNames.Match(p.ProcessName, wanted))
+                {
+                    match = p;
+                    break;
+                }
+            }
+            catch { }
+            finally
+            {
+                if (match != p) p.Dispose();
+            }
+        }
+
+        if (match is null) return;
+
+        try
+        {
+            var item = new ProcessItem(match.ProcessName, match.Id);
+            RefreshProcessList();
+            for (int i = 0; i < _processCombo.Items.Count; i++)
+            {
+                if (_processCombo.Items[i] is ProcessItem pi && pi.Id == item.Id)
+                {
+                    _processCombo.SelectedIndex = i;
+                    break;
+                }
+            }
+            ConnectSelected();
+        }
+        finally
+        {
+            match.Dispose();
+        }
     }
 
     private void HandleDisconnect()
@@ -801,3 +856,5 @@ public sealed class MainForm : Form
         public override string ToString() => $"{Name}  (PID {Id})";
     }
 }
+
+
