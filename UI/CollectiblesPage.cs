@@ -82,6 +82,8 @@ public sealed class CollectiblesPage : TrainerPage
     private readonly Label _count = Ui.Hint("");
     private readonly Label _liveCount = Ui.Hint("");
     private readonly Label _hudZoneTitle = new() { AutoSize = true, ForeColor = Color.FromArgb(236, 224, 198), Font = new Font("Georgia", 15f, FontStyle.Bold), BackColor = Color.Transparent };
+    private readonly CheckBox _hudFollowLink = new() { Text = "Seguir a Link", AutoSize = true, ForeColor = Color.FromArgb(236, 224, 198), Font = Theme.Small, BackColor = Color.Transparent, Margin = new Padding(4, 5, 8, 0), Cursor = Cursors.Hand };
+    private readonly Label _hudZoomLabel = new() { Text = "1.0x", AutoSize = true, ForeColor = Theme.Gold, Font = Theme.UiBold, BackColor = Color.Transparent, Margin = new Padding(6, 5, 6, 0) };
     private readonly CheckBox _hudOnlyMissing = new() { Text = "Solo pendientes", AutoSize = true, ForeColor = Color.FromArgb(215, 205, 185), Font = Theme.Small, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, 6), Cursor = Cursors.Hand };
     private readonly FlowLayoutPanel _hudBadges = new() { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
     private readonly Panel _detailCard = new() { Visible = false, BackColor = Color.FromArgb(238, 22, 25, 31), Padding = new Padding(12), Width = 340, AutoSize = true, MaximumSize = new Size(360, 420) };
@@ -227,11 +229,73 @@ public sealed class CollectiblesPage : TrainerPage
         // Tarjeta desplegable situada justo a la derecha de las etiquetas verticales
         _detailCard.Location = new Point(215, 12);
 
+        var zoomOverlay = new Panel
+        {
+            AutoSize = true,
+            BackColor = Color.FromArgb(215, 22, 20, 16),
+            Padding = new Padding(8, 5, 8, 5),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+        };
+        zoomOverlay.Paint += (_, e) => { using var pen = new Pen(Color.FromArgb(145, 120, 74), 1.2f); e.Graphics.DrawRectangle(pen, 0, 0, zoomOverlay.Width - 1, zoomOverlay.Height - 1); };
+
+        var zoomRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
+
+        Button MakeZoomBtn(string text)
+        {
+            var b = new Button
+            {
+                Text = text,
+                Width = 30,
+                Height = 24,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(52, 46, 34),
+                ForeColor = Theme.Gold,
+                Font = Theme.UiBold,
+                Cursor = Cursors.Hand,
+                Margin = new Padding(2, 0, 2, 0)
+            };
+            b.FlatAppearance.BorderColor = Color.FromArgb(145, 120, 74);
+            return b;
+        }
+
+        var btnZoomOut = MakeZoomBtn("−");
+        var btnZoomIn = MakeZoomBtn("+");
+        var btnZoomReset = MakeZoomBtn("1x");
+        btnZoomReset.Width = 34;
+
+        void UpdateZoomLabel() => _hudZoomLabel.Text = $"{_map.Zoom:0.0}x";
+
+        btnZoomOut.Click += (_, _) => { _map.Zoom = Math.Max(0.75f, _map.Zoom - 0.25f); UpdateZoomLabel(); _map.Invalidate(); };
+        btnZoomIn.Click += (_, _) => { _map.Zoom = Math.Min(4.5f, _map.Zoom + 0.25f); UpdateZoomLabel(); _map.Invalidate(); };
+        btnZoomReset.Click += (_, _) => { _map.Zoom = 1.0f; UpdateZoomLabel(); _map.Invalidate(); };
+        _map.MouseWheel += (_, e) =>
+        {
+            float step = e.Delta > 0 ? 0.25f : -0.25f;
+            _map.Zoom = Math.Clamp(_map.Zoom + step, 0.75f, 4.5f);
+            UpdateZoomLabel();
+            _map.Invalidate();
+        };
+        _hudFollowLink.CheckedChanged += (_, _) => { _map.FollowLink = _hudFollowLink.Checked; _map.Invalidate(); };
+
+        zoomRow.Controls.Add(_hudFollowLink);
+        zoomRow.Controls.Add(btnZoomOut);
+        zoomRow.Controls.Add(_hudZoomLabel);
+        zoomRow.Controls.Add(btnZoomIn);
+        zoomRow.Controls.Add(btnZoomReset);
+        zoomOverlay.Controls.Add(zoomRow);
+
+        mapHost.Resize += (_, _) =>
+        {
+            zoomOverlay.Location = new Point(Math.Max(12, mapHost.ClientSize.Width - zoomOverlay.Width - 16), Math.Max(12, mapHost.ClientSize.Height - zoomOverlay.Height - 16));
+        };
+
         mapHost.Controls.Add(hudOverlay);
         mapHost.Controls.Add(_detailCard);
+        mapHost.Controls.Add(zoomOverlay);
         mapHost.Controls.Add(_map);
         hudOverlay.BringToFront();
         _detailCard.BringToFront();
+        zoomOverlay.BringToFront();
 
         layout.Controls.Add(mapHost, 0, 1);
         page.Controls.Add(layout);
@@ -1274,6 +1338,53 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<(CollectibleDto Dto, bool Obtenido)> Pins { get; set; } = new();
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public float Zoom { get; set; } = 1.0f;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public bool FollowLink { get; set; } = true;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public PointF PanOffset { get; set; } = PointF.Empty;
+        public event Action? ViewChanged;
+        private Point? _dragStart;
+        private PointF _dragOrigin;
+
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            float step = e.Delta > 0 ? 0.25f : -0.25f;
+            Zoom = Math.Clamp(Zoom + step, 1.0f, 4.5f);
+            if (Zoom <= 1.01f) { Zoom = 1.0f; PanOffset = PointF.Empty; }
+            ViewChanged?.Invoke();
+            Invalidate();
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            if (e.Button == MouseButtons.Left && Zoom > 1.0f)
+            {
+                _dragStart = e.Location;
+                _dragOrigin = PanOffset;
+            }
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            if (_dragStart is { } start && e.Button == MouseButtons.Left)
+            {
+                FollowLink = false;
+                PanOffset = new PointF(_dragOrigin.X + (e.X - start.X), _dragOrigin.Y + (e.Y - start.Y));
+                ViewChanged?.Invoke();
+                Invalidate();
+            }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            _dragStart = null;
+        }
 
         public MapView()
         {
@@ -1367,29 +1478,53 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
                 minX = -8000f; maxX = 8000f; minZ = -8000f; maxZ = 8000f;
             }
 
-            RectangleF area = ClientRectangle;
-            area.Inflate(-24, -24);
+            RectangleF baseArea = ClientRectangle;
+            baseArea.Inflate(-24, -24);
             if (image is not null)
             {
-                float scale = Math.Min(area.Width / image.Width, area.Height / image.Height);
-                area = new RectangleF(
-                    area.X + (area.Width - image.Width * scale) / 2,
-                    area.Y + (area.Height - image.Height * scale) / 2,
+                float scale = Math.Min(baseArea.Width / image.Width, baseArea.Height / image.Height);
+                baseArea = new RectangleF(
+                    baseArea.X + (baseArea.Width - image.Width * scale) / 2f,
+                    baseArea.Y + (baseArea.Height - image.Height * scale) / 2f,
                     image.Width * scale, image.Height * scale);
-                g.DrawImage(image, area);
-            }
-            else
-            {
-                DrawGrid(g, area, minX, maxX, minZ, maxZ);
             }
 
-            float orthoScale = _activeCalibration is { CameraHeight: > 0 } c ? area.Height / (c.CameraHeight * 0.72f) : 1f;
-            float MapX(float x) => _activeCalibration is { CameraHeight: > 0 } cal && image is not null
-                ? area.Left + area.Width / 2f + (x - cal.CameraX) * orthoScale
-                : area.Left + (x - minX) / (maxX - minX) * area.Width;
-            float MapZ(float z) => _activeCalibration is { CameraHeight: > 0 } cal && image is not null
-                ? area.Top + area.Height / 2f + (z - cal.CameraZ) * orthoScale
-                : area.Top + (z - minZ) / (maxZ - minZ) * area.Height;
+            float orthoScale = _activeCalibration is { CameraHeight: > 0 } c ? baseArea.Height / (c.CameraHeight * 0.72f) : 1f;
+            float BaseX(float x) => _activeCalibration is { CameraHeight: > 0 } cal && image is not null
+                ? baseArea.Left + baseArea.Width / 2f + (x - cal.CameraX) * orthoScale
+                : baseArea.Left + (x - minX) / (maxX - minX) * baseArea.Width;
+            float BaseZ(float z) => _activeCalibration is { CameraHeight: > 0 } cal && image is not null
+                ? baseArea.Top + baseArea.Height / 2f + (z - cal.CameraZ) * orthoScale
+                : baseArea.Top + (z - minZ) / (maxZ - minZ) * baseArea.Height;
+
+            float viewCx = ClientRectangle.Width / 2f;
+            float viewCy = ClientRectangle.Height / 2f;
+            float pivotX = viewCx;
+            float pivotY = viewCy;
+            float offsetX = PanOffset.X;
+            float offsetY = PanOffset.Y;
+
+            if (FollowLink && LinkPosition is { } lp && Zoom > 1.0f)
+            {
+                pivotX = BaseX(lp.X);
+                pivotY = BaseZ(lp.Z);
+                offsetX = 0f;
+                offsetY = 0f;
+            }
+
+            float MapX(float x) => viewCx + (BaseX(x) - pivotX) * Zoom + offsetX;
+            float MapZ(float z) => viewCy + (BaseZ(z) - pivotY) * Zoom + offsetY;
+
+            RectangleF area = new RectangleF(
+                viewCx + (baseArea.Left - pivotX) * Zoom + offsetX,
+                viewCy + (baseArea.Top - pivotY) * Zoom + offsetY,
+                baseArea.Width * Zoom,
+                baseArea.Height * Zoom);
+
+            if (image is not null)
+                g.DrawImage(image, area);
+            else
+                DrawGrid(g, area, minX, maxX, minZ, maxZ);
 
             Point mouse = PointToClient(Control.MousePosition);
             string? hoverName = null;
@@ -1628,6 +1763,9 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
+
+
 
 
 
