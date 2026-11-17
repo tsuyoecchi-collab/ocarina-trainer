@@ -1151,6 +1151,12 @@ public sealed class CollectiblesPage : TrainerPage
             return py >= 95f ? "B1" : py >= 82f ? "B2" : py >= 68f ? "B3" : "B4";
         if (b.Equals("SpiritTemple", StringComparison.OrdinalIgnoreCase))
             return py >= 134f ? "4F" : py >= 122f ? "3F" : py >= 110f ? "2F" : "1F";
+        if (b.Equals("IceCavern", StringComparison.OrdinalIgnoreCase))
+            return py >= 105f ? "1F" : "B1";
+        if (b.Equals("GerudoTrainingGround", StringComparison.OrdinalIgnoreCase))
+            return py >= 106f ? "1F" : "B1";
+        if (b.Equals("InsideGanonCastle", StringComparison.OrdinalIgnoreCase))
+            return py >= 145f ? "5F" : py >= 134f ? "4F" : py >= 122f ? "3F" : py >= 111f ? "2F" : py >= 100f ? "1F" : "B1";
         return null;
     }
 
@@ -1874,6 +1880,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
