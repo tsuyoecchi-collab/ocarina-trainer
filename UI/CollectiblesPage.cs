@@ -82,6 +82,7 @@ public sealed class CollectiblesPage : TrainerPage
     private readonly Label _count = Ui.Hint("");
     private readonly Label _liveCount = Ui.Hint("");
     private readonly Label _hudZoneTitle = new() { AutoSize = true, ForeColor = Color.FromArgb(236, 224, 198), Font = new Font("Georgia", 15f, FontStyle.Bold), BackColor = Color.Transparent };
+    private readonly CheckBox _hudOnlyMissing = new() { Text = "Solo pendientes", AutoSize = true, ForeColor = Color.FromArgb(215, 205, 185), Font = Theme.Small, BackColor = Color.Transparent, Margin = new Padding(10, 6, 0, 0), Cursor = Cursors.Hand };
     private readonly FlowLayoutPanel _hudBadges = new() { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(12, 2, 0, 0) };
     private readonly Panel _detailCard = new() { Visible = false, BackColor = Color.FromArgb(238, 22, 25, 31), Padding = new Padding(12), Width = 340, AutoSize = true, MaximumSize = new Size(360, 420) };
     private readonly Label _detailTitle = Ui.Label("", bold: true);
@@ -215,9 +216,13 @@ public sealed class CollectiblesPage : TrainerPage
         };
         var goldLine = new Panel { Height = 2, Width = 210, BackColor = Color.FromArgb(195, 165, 95), Margin = new Padding(0, 2, 0, 6) };
         _hudBadges.Margin = new Padding(0);
+        var hudRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
+        _hudOnlyMissing.CheckedChanged += (_, _) => _map.Invalidate();
+        hudRow.Controls.Add(_hudBadges);
+        hudRow.Controls.Add(_hudOnlyMissing);
         hudStack.Controls.Add(_hudZoneTitle);
         hudStack.Controls.Add(goldLine);
-        hudStack.Controls.Add(_hudBadges);
+        hudStack.Controls.Add(hudRow);
         hudOverlay.Controls.Add(hudStack);
 
         _detailCard.Location = new Point(16, 98);
@@ -612,14 +617,43 @@ public sealed class CollectiblesPage : TrainerPage
                 Cursor = Cursors.Hand
             };
 
+            var rowPanel = new Panel { Width = 314, AutoSize = true, BackColor = itemLabel.BackColor, Margin = new Padding(0, 4, 0, 0), Padding = new Padding(0, 0, 6, 0) };
+            itemLabel.Width = 246;
+            itemLabel.MaximumSize = new Size(246, 0);
+            itemLabel.Margin = new Padding(0);
+            itemLabel.Dock = DockStyle.Left;
+
+            var tpBtn = new Button
+            {
+                Text = "Ir aquí",
+                Width = 58,
+                Height = 26,
+                Dock = DockStyle.Right,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(68, 58, 40),
+                ForeColor = Theme.Gold,
+                Font = Theme.Small,
+                Cursor = Cursors.Hand
+            };
+            tpBtn.FlatAppearance.BorderColor = Color.FromArgb(145, 120, 74);
+
+            CollectibleDto targetDto = row.Dto;
             string rowId = row.Dto.Id;
             itemLabel.Click += (_, _) =>
             {
                 _map.SelectedId = rowId;
                 _map.Invalidate();
             };
+            tpBtn.Click += (_, _) =>
+            {
+                _map.SelectedId = rowId;
+                _map.Invalidate();
+                TeleportToCollectible(targetDto);
+            };
 
-            _detailList.Controls.Add(itemLabel);
+            rowPanel.Controls.Add(itemLabel);
+            rowPanel.Controls.Add(tpBtn);
+            _detailList.Controls.Add(rowPanel);
         }
 
         _detailList.ResumeLayout(false);
@@ -627,6 +661,34 @@ public sealed class CollectiblesPage : TrainerPage
         _detailCard.BringToFront();
     }
 
+    private void TeleportToCollectible(CollectibleDto dto)
+    {
+        if (Host.Memory is not { } memory)
+        {
+            Host.SetStatus("Conecta el juego primero para teletransportar.", true);
+            return;
+        }
+        if (dto.WorldX == 0 && dto.WorldY == 0 && dto.WorldZ == 0)
+        {
+            Host.SetStatus("Este coleccionable aún no tiene coordenadas.", true);
+            return;
+        }
+        if (!AddressSpec.TryParse(LinkPosSpecX, out AddressSpec sx, out _) ||
+            !AddressSpec.TryParse(LinkPosSpecY, out AddressSpec sy, out _) ||
+            !AddressSpec.TryParse(LinkPosSpecZ, out AddressSpec sz, out _) ||
+            !sx.TryResolve(memory, out long ax, out _) ||
+            !sy.TryResolve(memory, out long ay, out _) ||
+            !sz.TryResolve(memory, out long az, out _))
+        {
+            Host.SetStatus("No se pudo resolver la posición de Link en memoria.", true);
+            return;
+        }
+
+        memory.TryWrite(ax, BitConverter.GetBytes(dto.WorldX));
+        memory.TryWrite(ay, BitConverter.GetBytes(dto.WorldY + 0.5f));
+        memory.TryWrite(az, BitConverter.GetBytes(dto.WorldZ));
+        Host.Notify($"Teletransportado a {dto.Nombre}");
+    }
     private void SelectRowInGrids(Row row)
     {
         _map.SelectedId = row.Dto.Id;
@@ -1544,6 +1606,8 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
+
 
 
 
