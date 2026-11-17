@@ -173,9 +173,10 @@ public sealed class CollectiblesPage : TrainerPage
         _floor.Margin = new Padding(0, 2, 0, 0);
         _floor.SelectedIndexChanged += (_, _) =>
         {
-            if (_updatingFloors || _floor.SelectedIndex < 0 || _floor.SelectedIndex >= _floorPaths.Count) return;
+            if (_floor.SelectedIndex < 0 || _floor.SelectedIndex >= _floorPaths.Count) return;
             _map.TextureOverride = _floorPaths[_floor.SelectedIndex];
             _map.ReloadMap();
+            _map.Invalidate();
         };
         rightControls.Controls.Add(_floor);
         topBar.Controls.Add(header);
@@ -993,11 +994,17 @@ public sealed class CollectiblesPage : TrainerPage
         if (previousBanc != _currentBanc) { _lastAutoFloor = null; _lastAutoState = null; }
         if (previousBanc != _currentBanc)
         {
+            _lastAutoFloor = null;
+            _lastAutoState = null;
+            _activeHudType = null;
+            _detailCard.Visible = false;
+            _map.PanOffset = PointF.Empty;
             ApplyLiveFilter();
+            RefreshHudBadges();
             _map.CurrentMapName = _currentBanc;
             _map.TextureOverride = null;
-            _map.ReloadMap();
             UpdateFloorSelector(force: true);
+            _map.ReloadMap();
         }
 
         HashSet<ulong> bool64Active = GameFlagsReader.ReadBool64Set(memory);
@@ -1127,7 +1134,12 @@ public sealed class CollectiblesPage : TrainerPage
         if (string.IsNullOrEmpty(banc) || y is not { } py) return null;
         string b = banc.Replace("_Child", "").Replace("_Adult", "");
         if (b.Equals("InsideTheDekuTree", StringComparison.OrdinalIgnoreCase))
-            return py >= 760f ? "3F" : py >= 360f ? "2F" : py >= -60f ? "1F" : py >= -780f ? "B1" : "B2";
+        {
+            // Escala estándar OoT 3D (1F ≈ 0..380, 2F ≈ 380..760, 3F >= 760, B1 ≈ -760..-20, B2 < -760)
+            // y respaldo si Y viene escalada x10 (3800/7600)
+            float ay = MathF.Abs(py) > 2500f ? py / 10f : py;
+            return ay >= 760f ? "3F" : ay >= 380f ? "2F" : ay >= -40f ? "1F" : ay >= -760f ? "B1" : "B2";
+        }
         if (b.Equals("DodongoCavern", StringComparison.OrdinalIgnoreCase))
             return py >= 108f ? "2F" : "1F";
         if (b.Equals("InsideJabuJabuBelly", StringComparison.OrdinalIgnoreCase))
@@ -1866,6 +1878,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
