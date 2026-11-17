@@ -180,6 +180,28 @@ internal static class Ui
             e.Handled = true;
         };
 
+        grid.CellMouseClick += (_, e) =>
+        {
+            if (e.Button != MouseButtons.Left || e.RowIndex < 0 || e.ColumnIndex < 0) return;
+            if (grid.Columns[e.ColumnIndex] is not DataGridViewCheckBoxColumn) return;
+            var cell = grid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+            bool current = cell.Value is bool b && b;
+            cell.Value = !current;
+            grid.InvalidateCell(e.ColumnIndex, e.RowIndex);
+        };
+
+        grid.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Space || grid.CurrentCell is null) return;
+            int col = grid.CurrentCell.ColumnIndex;
+            int row = grid.CurrentCell.RowIndex;
+            if (row < 0 || col < 0 || grid.Columns[col] is not DataGridViewCheckBoxColumn) return;
+            bool current = grid.CurrentCell.Value is bool b && b;
+            grid.CurrentCell.Value = !current;
+            grid.InvalidateCell(col, row);
+            e.Handled = true;
+        };
+
         return grid;
     }
 
@@ -189,7 +211,7 @@ internal static class Ui
         DataPropertyName = property,
         Width = width,
         SortMode = DataGridViewColumnSortMode.NotSortable,
-        ReadOnly = false,
+        ReadOnly = true,
         FlatStyle = FlatStyle.Flat,
         DefaultCellStyle = new DataGridViewCellStyle
         {
@@ -367,4 +389,5 @@ internal sealed class FlatCheckBox : CheckBox
         return Theme.Bg;
     }
 }
+
 
