@@ -174,9 +174,14 @@ public sealed class CollectiblesPage : TrainerPage
         _floor.SelectedIndexChanged += (_, _) =>
         {
             if (_floor.SelectedIndex < 0 || _floor.SelectedIndex >= _floorPaths.Count) return;
+            _map.ViewingFloorIndex = _floor.SelectedIndex;
             _map.TextureOverride = _floorPaths[_floor.SelectedIndex];
             _map.ReloadMap();
             _map.Invalidate();
+        };
+        _map.FloorSlotClicked += idx =>
+        {
+            if (idx >= 0 && idx < _floor.Items.Count) { _lastAutoFloor = "MANUAL"; _floor.SelectedIndex = idx; }
         };
         rightControls.Controls.Add(_floor);
         topBar.Controls.Add(header);
@@ -1401,8 +1406,18 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         private string? _loadedPath;
         private DateTime _loadedStamp;
         private Image? _mapImage;
+        private Image? _bgMapImage;
+        private readonly List<(RectangleF Bounds, int FloorIndex)> _floorHitBoxes = new();
         private List<MapCalibration> _calibration = new();
         private MapCalibration? _activeCalibration;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public List<(int FloorIndex, string Tag, string DisplayLabel)> FloorSlots { get; set; } = new();
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public int ViewingFloorIndex { get; set; } = -1;
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public string? LinkFloorTag { get; set; }
+        public event Action<int>? FloorSlotClicked;
 
         /// <summary>Carga la calibraciÃ³n extraÃ­da del juego (maps\map-calibration.json).</summary>
         public void SetCalibration(List<MapCalibration> calibration)
@@ -1480,6 +1495,14 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
             base.OnMouseDown(e);
             if (e.Button == MouseButtons.Left)
             {
+                foreach (var (bounds, floorIdx) in _floorHitBoxes)
+                {
+                    if (bounds.Contains(e.Location))
+                    {
+                        FloorSlotClicked?.Invoke(floorIdx);
+                        return;
+                    }
+                }
                 _dragStart = e.Location;
                 _dragOrigin = PanOffset;
             }
@@ -1538,6 +1561,8 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
 
             _mapImage?.Dispose();
             _mapImage = null;
+            _bgMapImage?.Dispose();
+            _bgMapImage = null;
             _loadedPath = path;
             _loadedStamp = Stamp(path);
 
@@ -1545,9 +1570,68 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
             {
                 try { _mapImage = Image.FromFile(path); }
                 catch { _mapImage = null; }
+
+                string fn = Path.GetFileNameWithoutExtension(path);
+                if (!fn.Contains("_All", StringComparison.OrdinalIgnoreCase))
+                {
+                    string? dir = Path.GetDirectoryName(path);
+                    string prefix = CurrentMapName is { Length: > 0 } cm ? cm : fn.Split('_')[0];
+                    if (dir is not null && prefix.Length > 0)
+                    {
+                        string allPath = Path.Combine(dir, prefix + "_All.png");
+                        if (!File.Exists(allPath))
+                            allPath = Directory.EnumerateFiles(dir, prefix + "*_All.png").FirstOrDefault() ?? "";
+                        if (File.Exists(allPath))
+                        {
+                            try { _bgMapImage = Image.FromFile(allPath); }
+                            catch { _bgMapImage = null; }
+                        }
+                    }
+                }
             }
 
             return _mapImage;
+        }
+
+        private void DrawFloorHud(Graphics g)
+        {
+            _floorHitBoxes.Clear();
+            if (FloorSlots.Count <= 1) return;
+            float boxW = 68f, rowH = 26f, startX = 14f;
+            float totalH = FloorSlots.Count * rowH + 22f;
+            float startY = Math.Max(16f, (ClientRectangle.Height - totalH) / 2f);
+
+            using var panelBg = new SolidBrush(Color.FromArgb(185, 42, 34, 24));
+            using var panelBorder = new Pen(Color.FromArgb(140, 165, 138, 92), 1f);
+            g.FillRectangle(panelBg, startX, startY, boxW, totalH);
+            g.DrawRectangle(panelBorder, startX, startY, boxW, totalH);
+
+            using var font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            using var smallFont = new Font("Segoe UI", 7.5f);
+            using var textBrush = new SolidBrush(Color.FromArgb(238, 224, 192));
+            using var linkTriBrush = new SolidBrush(Color.FromArgb(245, 198, 68));
+            using var activeBg = new SolidBrush(Color.FromArgb(95, 215, 185, 120));
+            using var activeBorder = new Pen(Color.FromArgb(245, 232, 198), 1.8f);
+            using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+
+            for (int i = 0; i < FloorSlots.Count; i++)
+            {
+                var slot = FloorSlots[i];
+                var rowRect = new RectangleF(startX + 4f, startY + 4f + i * rowH, boxW - 8f, rowH - 2f);
+                _floorHitBoxes.Add((rowRect, slot.FloorIndex));
+                if (slot.FloorIndex == ViewingFloorIndex)
+                {
+                    g.FillRectangle(activeBg, rowRect);
+                    g.DrawRectangle(activeBorder, rowRect.X, rowRect.Y, rowRect.Width, rowRect.Height);
+                }
+                if (!string.IsNullOrEmpty(LinkFloorTag) && slot.Tag.Equals(LinkFloorTag, StringComparison.OrdinalIgnoreCase))
+                {
+                    float tx = rowRect.X + 10f, ty = rowRect.Y + rowRect.Height / 2f;
+                    g.FillPolygon(linkTriBrush, new[] { new PointF(tx, ty - 4.5f), new PointF(tx - 4.5f, ty + 4f), new PointF(tx + 4.5f, ty + 4f) });
+                }
+                g.DrawString(slot.DisplayLabel, font, textBrush, new RectangleF(rowRect.X + 8f, rowRect.Y, rowRect.Width - 10f, rowRect.Height), sf);
+            }
+            g.DrawString("Pisos", smallFont, textBrush, new RectangleF(startX, startY + FloorSlots.Count * rowH + 4f, boxW, 16f), sf);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -1638,10 +1722,26 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
                 baseArea.Width * Zoom,
                 baseArea.Height * Zoom);
 
-            if (image is not null)
-                g.DrawImage(image, area);
-            else
-                DrawGrid(g, area, minX, maxX, minZ, maxZ);
+            if (_bgMapImage is not null && image is not null)
+            {
+                using var ia = new System.Drawing.Imaging.ImageAttributes();
+                var cm = new System.Drawing.Imaging.ColorMatrix(new[]
+                {
+                    new[] { 0.55f, 0f, 0f, 0f, 0f },
+                    new[] { 0f, 0.48f, 0f, 0f, 0f },
+                    new[] { 0f, 0f, 0.38f, 0f, 0f },
+                    new[] { 0f, 0f, 0f, 0.30f, 0f },
+                    new[] { 0f, 0f, 0f, 0f, 1f }
+                });
+                ia.SetColorMatrix(cm);
+                g.DrawImage(_bgMapImage,
+                    new[] { new PointF(area.Left, area.Top), new PointF(area.Right, area.Top), new PointF(area.Left, area.Bottom) },
+                    new RectangleF(0, 0, _bgMapImage.Width, _bgMapImage.Height),
+                    GraphicsUnit.Pixel, ia);
+            }
+            if (image is not null) g.DrawImage(image, area);
+            else DrawGrid(g, area, minX, maxX, minZ, maxZ);
+            DrawFloorHud(g);
 
             Point mouse = PointToClient(Control.MousePosition);
             string? hoverName = null;
@@ -1880,6 +1980,10 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
+
+
+
 
 
 
