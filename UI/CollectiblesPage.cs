@@ -604,44 +604,57 @@ public sealed class CollectiblesPage : TrainerPage
         foreach (Row row in items)
         {
             bool isSel = row.Dto.Id == (highlightId ?? _map.SelectedId);
-            string badgeStatus = row.Estado == "Conseguida" ? "✓ Conseguida" : "• Pendiente";
+            bool isDone = row.Estado == "Conseguida";
+            string epoca = row.Dto.Epoca ?? "";
+            bool blockedByAge = !isDone && (
+                (_isChild && epoca.Contains("Adulto", StringComparison.OrdinalIgnoreCase) && !epoca.Contains("Niño", StringComparison.OrdinalIgnoreCase)) ||
+                (!_isChild && epoca.Contains("Niño", StringComparison.OrdinalIgnoreCase) && !epoca.Contains("Adulto", StringComparison.OrdinalIgnoreCase))
+            );
+
+            string checkBox = isDone ? "[✓]" : (blockedByAge ? "[⨯]" : "[ ]");
+            Color textColor = isDone
+                ? Color.FromArgb(120, 220, 130)
+                : (blockedByAge ? Color.FromArgb(165, 135, 115) : Theme.Text);
+
+            string shortName = System.Text.RegularExpressions.Regex.Replace(row.Nombre, @"\s*\([^)]*\)\s*$", "").Trim();
 
             var rowTable = new TableLayoutPanel
             {
-                Width = 316,
+                Width = 304,
                 AutoSize = true,
                 ColumnCount = 2,
                 RowCount = 1,
                 BackColor = isSel ? Color.FromArgb(68, 58, 40) : Color.FromArgb(36, 32, 26),
-                Margin = new Padding(0, 5, 0, 0),
-                Padding = new Padding(6, 5, 6, 5)
+                Margin = new Padding(0, 4, 0, 0),
+                Padding = new Padding(8, 5, 6, 5)
             };
             rowTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
             rowTable.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
             var itemLabel = new Label
             {
-                Text = $"{row.Nombre}  [{badgeStatus}]\n{row.Dto.UbicacionExacta}",
-                ForeColor = row.Estado == "Conseguida" ? Color.FromArgb(120, 220, 130) : Theme.Text,
+                Text = $"{checkBox} {shortName}",
+                ForeColor = textColor,
                 BackColor = Color.Transparent,
-                Font = Theme.Small,
+                Font = Theme.UiBold,
                 AutoSize = true,
-                MaximumSize = new Size(230, 0),
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 3, 0, 0),
                 Cursor = Cursors.Hand
             };
 
             var tpBtn = new Button
             {
                 Text = "Ir aquí",
-                Width = 62,
-                Height = 26,
+                Width = 60,
+                Height = 24,
                 Anchor = AnchorStyles.Right,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(74, 62, 40),
                 ForeColor = Theme.Gold,
                 Font = Theme.Small,
                 Cursor = Cursors.Hand,
-                Margin = new Padding(6, 2, 0, 0)
+                Margin = new Padding(6, 0, 0, 0)
             };
             tpBtn.FlatAppearance.BorderColor = Color.FromArgb(155, 128, 76);
 
@@ -1613,6 +1626,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
