@@ -1133,30 +1133,30 @@ public sealed class CollectiblesPage : TrainerPage
     {
         if (string.IsNullOrEmpty(banc) || y is not { } py) return null;
         string b = banc.Replace("_Child", "").Replace("_Adult", "");
+
+        // Umbrales oficiales TransY extraídos directamente de MapParam.byml (romfs)
         if (b.Equals("InsideTheDekuTree", StringComparison.OrdinalIgnoreCase))
-            return py >= 126.5f ? "3F" : py >= 109.5f ? "2F" : py >= 99.5f ? "1F" : py >= 89.0f ? "B1" : "B2";
+            return py >= 118.0f ? "3F" : py >= 106.5f ? "2F" : py >= 93.5f ? "1F" : py >= 73.0f ? "B1" : "B2";
         if (b.Equals("DodongoCavern", StringComparison.OrdinalIgnoreCase))
-            return py >= 108f ? "2F" : "1F";
+            return py >= 108.02f ? "2F" : "1F";
         if (b.Equals("InsideJabuJabuBelly", StringComparison.OrdinalIgnoreCase))
-            return py >= 108f ? "2F" : py >= 98f ? "1F" : "B1";
+            return py >= 95.92f ? "2F" : py >= 88.52f ? "1F" : "B1";
         if (b.Equals("BottomOfTheWell", StringComparison.OrdinalIgnoreCase))
-            return py >= 98f ? "B1" : "B2";
+            return py >= 96.04f ? "B1" : "B2";
         if (b.Equals("ForestTemple", StringComparison.OrdinalIgnoreCase))
-            return py >= 122f ? "3F" : py >= 111f ? "2F" : py >= 100f ? "1F" : py >= 90f ? "B1" : "B2";
+            return py >= 122.54f ? "3F" : py >= 112.20f ? "2F" : py >= 94.52f ? "1F" : py >= 69.17f ? "B1" : "B2";
         if (b.Equals("FireTemple", StringComparison.OrdinalIgnoreCase))
-            return py >= 142f ? "5F" : py >= 131f ? "4F" : py >= 120f ? "3F" : py >= 109f ? "2F" : "1F";
+            return py >= 185.40f ? "5F" : py >= 166.91f ? "4F" : py >= 145.01f ? "3F" : py >= 126.95f ? "2F" : "1F";
         if (b.Equals("WaterTemple", StringComparison.OrdinalIgnoreCase))
-            return py >= 122f ? "3F" : py >= 111f ? "2F" : py >= 100f ? "1F" : "B1";
+            return py >= 115.61f ? "3F" : py >= 108.70f ? "2F" : py >= 96.97f ? "1F" : "B1";
         if (b.Equals("ShadowTemple", StringComparison.OrdinalIgnoreCase))
-            return py >= 95f ? "B1" : py >= 82f ? "B2" : py >= 68f ? "B3" : "B4";
+            return py >= 89.85f ? "B1" : py >= 72.85f ? "B2" : py >= 49.34f ? "B3" : "B4";
         if (b.Equals("SpiritTemple", StringComparison.OrdinalIgnoreCase))
-            return py >= 134f ? "4F" : py >= 122f ? "3F" : py >= 110f ? "2F" : "1F";
-        if (b.Equals("IceCavern", StringComparison.OrdinalIgnoreCase))
-            return py >= 105f ? "1F" : "B1";
+            return py >= 150.27f ? "4F" : py >= 128.00f ? "3F" : py >= 113.76f ? "2F" : "1F";
         if (b.Equals("GerudoTrainingGround", StringComparison.OrdinalIgnoreCase))
-            return py >= 106f ? "1F" : "B1";
+            return py >= 105.00f ? "1F" : "B1";
         if (b.Equals("InsideGanonCastle", StringComparison.OrdinalIgnoreCase))
-            return py >= 145f ? "5F" : py >= 134f ? "4F" : py >= 122f ? "3F" : py >= 111f ? "2F" : py >= 100f ? "1F" : "B1";
+            return py >= 171.00f ? "7F" : py >= 156.17f ? "6F" : py >= 149.65f ? "5F" : py >= 143.24f ? "4F" : py >= 136.23f ? "3F" : py >= 129.92f ? "2F" : "1F";
         return null;
     }
 
@@ -1880,6 +1880,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
