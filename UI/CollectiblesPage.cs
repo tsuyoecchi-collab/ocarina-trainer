@@ -1053,8 +1053,21 @@ public sealed class CollectiblesPage : TrainerPage
             SelectTextureBySuffix(autoState);
         }
 
-        string? autoFloor = DetectFloorTag(_currentBanc, ReadLinkY(memory));
-        if (autoFloor is not null)
+        float? curY = ReadLinkY(memory);
+        if (_map.LinkPosition is { } lp2D && curY is { } ly3D)
+            _latestLinkPos3D = (lp2D.X, ly3D, lp2D.Z);
+
+        string? autoFloor = DetectFloorTag(_currentBanc, curY);
+        if (_map.LinkFloorTag != autoFloor) { _map.LinkFloorTag = autoFloor; _map.Invalidate(); }
+
+        if (_manualFloorLockPos is { } lockPos && _latestLinkPos3D is { } curPos)
+        {
+            float moved = MathF.Abs(curPos.X - lockPos.X) + MathF.Abs(curPos.Y - lockPos.Y) + MathF.Abs(curPos.Z - lockPos.Z);
+            if (moved > 15.0f)
+                _manualFloorLockPos = null;
+        }
+
+        if (_manualFloorLockPos is null && autoFloor is not null)
         {
             string currentLabel = _floor.SelectedItem?.ToString() ?? "";
             if (autoFloor != _lastAutoFloor || !currentLabel.Contains(autoFloor, StringComparison.OrdinalIgnoreCase))
@@ -2002,6 +2015,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
