@@ -1,4 +1,4 @@
-using PhykroTrainer.Core;
+﻿using PhykroTrainer.Core;
 
 namespace PhykroTrainer.UI;
 
@@ -120,16 +120,16 @@ internal static class Ui
             RowHeadersVisible = false,
             EnableHeadersVisualStyles = false,
             AutoGenerateColumns = false,
-            ColumnHeadersHeight = 32,
-            RowTemplate = { Height = 27 },
+            ColumnHeadersHeight = 34,
+            RowTemplate = { Height = 31 },
             Font = Theme.Ui
         };
 
-        grid.ColumnHeadersDefaultCellStyle.BackColor = Theme.CardAlt;
-        grid.ColumnHeadersDefaultCellStyle.ForeColor = Theme.Text;
+        grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(54, 40, 22);
+        grid.ColumnHeadersDefaultCellStyle.ForeColor = Theme.Gold;
         grid.ColumnHeadersDefaultCellStyle.Font = Theme.UiBold;
-        grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Theme.CardAlt;
-        grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Theme.Text;
+        grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(54, 40, 22);
+        grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Theme.Gold;
         grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(6, 0, 6, 0);
 
         grid.DefaultCellStyle.BackColor = Theme.Card;
@@ -137,9 +137,48 @@ internal static class Ui
         grid.DefaultCellStyle.SelectionBackColor = Theme.Selection;
         grid.DefaultCellStyle.SelectionForeColor = Color.White;
         grid.DefaultCellStyle.Padding = new Padding(6, 0, 6, 0);
-        grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(30, 32, 38);
+        grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(52, 39, 22);
         grid.AlternatingRowsDefaultCellStyle.ForeColor = Theme.Text;
         grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = Theme.Selection;
+
+        grid.CellPainting += (_, e) =>
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+            if (grid.Columns[e.ColumnIndex] is not DataGridViewCheckBoxColumn) return;
+
+            e.PaintBackground(e.ClipBounds, true);
+            bool isChecked = e.Value is bool b && b;
+            int sz = 20;
+            int bx = e.CellBounds.X + (e.CellBounds.Width - sz) / 2;
+            int by = e.CellBounds.Y + (e.CellBounds.Height - sz) / 2;
+            var box = new Rectangle(bx, by, sz, sz);
+
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using (var stoneFill = new SolidBrush(isChecked ? Color.FromArgb(58, 48, 30) : Color.FromArgb(34, 32, 30)))
+                e.Graphics.FillRectangle(stoneFill, box);
+            using (var outerGold = new Pen(isChecked ? Color.FromArgb(245, 206, 96) : Color.FromArgb(156, 128, 74), 1.6f))
+                e.Graphics.DrawRectangle(outerGold, box);
+            using (var innerInset = new Pen(Color.FromArgb(22, 18, 14), 1f))
+                e.Graphics.DrawRectangle(innerInset, bx + 2, by + 2, sz - 4, sz - 4);
+
+            if (isChecked)
+            {
+                using var checkPen = new Pen(Color.FromArgb(255, 224, 118), 2.6f)
+                {
+                    StartCap = System.Drawing.Drawing2D.LineCap.Round,
+                    EndCap = System.Drawing.Drawing2D.LineCap.Round,
+                    LineJoin = System.Drawing.Drawing2D.LineJoin.Round
+                };
+                e.Graphics.DrawLines(checkPen, new[]
+                {
+                    new PointF(bx + 4.5f, by + sz * 0.54f),
+                    new PointF(bx + sz * 0.42f, by + sz - 4.8f),
+                    new PointF(bx + sz - 4.2f, by + 4.5f)
+                });
+            }
+
+            e.Handled = true;
+        };
 
         return grid;
     }
@@ -269,7 +308,7 @@ internal static class Ui
 /// </summary>
 internal sealed class FlatCheckBox : CheckBox
 {
-    private const int BoxSize = 15;
+    private const int BoxSize = 19;
 
     public FlatCheckBox()
     {
@@ -296,14 +335,14 @@ internal sealed class FlatCheckBox : CheckBox
         int top = Math.Max(0, (Height - BoxSize) / 2);
         var box = new Rectangle(0, top, BoxSize, BoxSize);
 
-        using (var fill = new SolidBrush(Checked ? Theme.Accent : Theme.CardAlt))
+        using (var fill = new SolidBrush(Checked ? Color.FromArgb(62, 50, 30) : Color.FromArgb(34, 32, 30)))
             g.FillRectangle(fill, box);
-        using (var border = new Pen(Checked ? Theme.Accent : Theme.Muted, 1.4f))
+        using (var border = new Pen(Checked ? Color.FromArgb(245, 206, 96) : Color.FromArgb(156, 128, 74), 1.6f))
             g.DrawRectangle(border, box);
 
         if (Checked)
         {
-            using var mark = new Pen(Color.FromArgb(12, 32, 20), 2f);
+            using var mark = new Pen(Color.FromArgb(255, 224, 118), 2.5f);
             g.DrawLines(mark, new[]
             {
                 new PointF(3f, top + BoxSize / 2f),
@@ -328,3 +367,4 @@ internal sealed class FlatCheckBox : CheckBox
         return Theme.Bg;
     }
 }
+
