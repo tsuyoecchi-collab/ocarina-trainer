@@ -1,4 +1,4 @@
-# MEMORY.md — ocarina-trainer
+﻿# MEMORY.md — ocarina-trainer
 
 ## 1. Archivos EN USO
 - (Ninguno)
@@ -9,7 +9,7 @@
 - **Formato:** Usar herramientas `edit`/`write` (nunca `Set-Content` de PowerShell) para conservar acentos UTF-8.
 
 ## 3. Catálogo Verificado de Estadísticas (Ocarina 1.1.1 — Tabla `0x1ADEB54D0..0x1ADEB5AD0`)
-- **Ya etiquetadas (8 de 33):**
+- **Ya etiquetadas (10 de 33):**
   - Valor 6 (`0x1ADEB55E0`): **Enemigos derrotados**
   - Valor 10 (`0x1ADEB56A0`): **Elechos cortados**
   - Valor 11 (`0x1ADEB56D0`): **Cantidad de Saltos**
@@ -24,7 +24,7 @@
 
 ## 4. Estado Actual de los Módulos
 - **Motor y Catálogo (`Core/`):** `StatsCatalog.cs` (`Map` es `internal` para `SelfTest.cs`, soporta `DireccionMaximo` -> `MaxSpec`). `OcarinaModule.cs` enlazado a `StatsCatalog.Current` (33 entradas). `selftest` en verde (exit 0).
-- **Interfaz (`UI/`):** `MainForm.cs` sin tarjeta lateral PROGRESO; `StatsPage.cs` es tabla solo lectura con columna `Actualizado` ordenada descendentemente y refrescada en `OnUiTick`.
+- **Interfaz (`UI/`):** `Theme.cs` y `Ui.cs` con paleta estilo menú OoT Remake (pergamino oscuro cálido, marcos dorados, barras superior e inferior texturizadas, checkboxes `20x20` de pizarra grabada con clic único determinista); `MainForm.cs` sin tarjeta lateral PROGRESO; `StatsPage.cs` es tabla solo lectura con columna `Actualizado` ordenada descendentemente y refrescada en `OnUiTick`; `CollectiblesPage.cs` muestra 361 coleccionables (Skulltulas, Piezas de Corazón, Frijoles Mágicos y Cofres) con badges HUD y pines en el mapa.
 
 ## 5. Decisiones Inamovibles / Direcciones
 - **MOD_MAIN_BASE fijo:** `0x7000000000`.
@@ -38,10 +38,6 @@
 - **Modelo Build:** Limpiar `dist/trainer.log` pendiente en la próxima publicación oficial.
 
 ## 7. Registro de Cambios Recientes (Máx. 3 viñetas por turno)
-- **`GameMapExtractor`:** decodificación vía `nx2_tex.dll` (`tex_bl_copy` + `astc_decode_ldr`), dicts Zstd de `ZsDic.pack`, filtra `Mini_*/_Alpha/_Back/_Grad`, kinds `2D(4,4,16)/2F(5,5,16)/31(6,6,16)`, `FixSeam` circular en `seamY=(8<<th)*bh`.
-- **`PhykroTrainer.csproj`:** `<None nx2_tex.dll CopyToOutputDirectory=PreserveNewest>` y `AllowUnsafeBlocks=true`.
-- **Publicado** `dist\Phykro-Trainer.exe` con `nx2_tex.dll` junto; borrado `dist/maps/` (re-extrae al reconectar). Build 0 errores y `--selftest` exit 0.
-- **`GameMapExtractor`:** `DecodeBrti` usa spec verificada (`fmt` +0x1C, dims +0x24/+0x28, `th` +0x34 clamps 0-5, `size` +0x50, `mips` +0x70→`dataStart`); `kind=(fmt>>8)&0xFF` → `0x0B`(1,1,4), `0x1D`(4,4,8), `0x2D`(4,4,16), `0x2F`(6,6,16), `0x31`(8,8,16); `need=gobCols*unitRows*u64` y deswizzle `SwitchSwizzle.DeswizzleBlockLinear` (GOB 64 B × `8<<th`).
-- **`GameMapExtractor`:** BC4 portado exacto de `menu_assets.c` `bc4_decode` (RGB blanco, alpha de paleta 8) y ASTC vía AstcSharp (`2D/2F/31`); `_ref/` borrado. `astc_decode_ldr` no estaba en `_ref/`, se usa AstcSharp.
-- **Publicado** `dist\Phykro-Trainer.exe` (47.6 MB); build 0 errores y `--selftest` exit 0.
-
+- **`Theme.cs` / `Ui.cs` / `MainForm.cs`:** rediseño completo estilo menú OoT Remake (pergamino cálido, bordes dorados, barras superior/inferior de textura y botones de encabezado), reparación de codificación UTF-8 en `.cs` y checkboxes `20x20` de pizarra/marco dorado con `ReadOnly = true` + `CellMouseClick` para evitar modos de edición nativos rotos.
+- **`gen_coleccionables_all.py` / `CollectiblesPage.cs`:** ampliado `coleccionables.json` a **361 entradas** (100 Skulltulas Doradas + 36 Piezas de Corazón + 73 Frijoles Mágicos + 152 Cofres del Tesoro) y añadido badge/icono de **Cofres** en el HUD y el mapa.
+- **Publicado** `dist\Phykro-Trainer.exe` (commits `20f0373`, `5ff12f6`, `ab11ceb`); build 0 errores y sincronizado en `origin/main`.
