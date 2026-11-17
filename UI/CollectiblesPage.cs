@@ -1123,7 +1123,7 @@ public sealed class CollectiblesPage : TrainerPage
         if (string.IsNullOrEmpty(banc) || y is not { } py) return null;
         string b = banc.Replace("_Child", "").Replace("_Adult", "");
         if (b.Equals("InsideTheDekuTree", StringComparison.OrdinalIgnoreCase))
-            return py >= 127f ? "3F" : py >= 117f ? "2F" : py >= 106f ? "1F" : py >= 93f ? "B1" : "B2";
+            return py >= 760f ? "3F" : py >= 360f ? "2F" : py >= -60f ? "1F" : py >= -780f ? "B1" : "B2";
         if (b.Equals("DodongoCavern", StringComparison.OrdinalIgnoreCase))
             return py >= 108f ? "2F" : "1F";
         if (b.Equals("InsideJabuJabuBelly", StringComparison.OrdinalIgnoreCase))
@@ -1147,11 +1147,26 @@ public sealed class CollectiblesPage : TrainerPage
     {
         for (int i = 0; i < _floor.Items.Count; i++)
         {
-            if ((_floor.Items[i]?.ToString() ?? "").Contains(tag, StringComparison.OrdinalIgnoreCase))
+            string itemText = _floor.Items[i]?.ToString() ?? "";
+            if (itemText.Contains(tag, StringComparison.OrdinalIgnoreCase))
             {
                 if (_floor.SelectedIndex != i) _floor.SelectedIndex = i;
                 return;
             }
+        }
+        // Respaldo si las texturas tienen índice numérico (0=3F/arriba ... 4=B2/abajo)
+        int fallbackIdx = tag.ToUpperInvariant() switch
+        {
+            "3F" => 0,
+            "2F" => 1,
+            "1F" => 2,
+            "B1" => 3,
+            "B2" => 4,
+            _ => -1
+        };
+        if (fallbackIdx >= 0 && fallbackIdx < _floor.Items.Count && _floor.SelectedIndex != fallbackIdx)
+        {
+            _floor.SelectedIndex = fallbackIdx;
         }
     }
 
@@ -1842,6 +1857,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
