@@ -231,64 +231,115 @@ public sealed class CollectiblesPage : TrainerPage
 
         var zoomOverlay = new Panel
         {
-            AutoSize = true,
-            BackColor = Color.FromArgb(215, 22, 20, 16),
-            Padding = new Padding(8, 5, 8, 5),
+            Width = 38,
+            Height = 114,
+            BackColor = Color.FromArgb(225, 24, 21, 17),
             Anchor = AnchorStyles.Bottom | AnchorStyles.Right
         };
-        zoomOverlay.Paint += (_, e) => { using var pen = new Pen(Color.FromArgb(145, 120, 74), 1.2f); e.Graphics.DrawRectangle(pen, 0, 0, zoomOverlay.Width - 1, zoomOverlay.Height - 1); };
 
-        var zoomRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
-
-        Button MakeZoomBtn(string text)
+        var btnZoomIn = new Button
         {
-            var b = new Button
-            {
-                Text = text,
-                Width = 30,
-                Height = 24,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(52, 46, 34),
-                ForeColor = Theme.Gold,
-                Font = Theme.UiBold,
-                Cursor = Cursors.Hand,
-                Margin = new Padding(2, 0, 2, 0)
-            };
-            b.FlatAppearance.BorderColor = Color.FromArgb(145, 120, 74);
-            return b;
-        }
+            Text = "",
+            Location = new Point(0, 0),
+            Size = new Size(38, 38),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.Transparent,
+            Cursor = Cursors.Hand
+        };
+        btnZoomIn.FlatAppearance.BorderSize = 0;
+        btnZoomIn.FlatAppearance.MouseOverBackColor = Color.FromArgb(52, 46, 36);
 
-        var btnZoomOut = MakeZoomBtn("−");
-        var btnZoomIn = MakeZoomBtn("+");
-        var btnZoomReset = MakeZoomBtn("1x");
-        btnZoomReset.Width = 34;
-
-        void UpdateZoomLabel() => _hudZoomLabel.Text = $"{_map.Zoom:0.0}x";
-
-        btnZoomOut.Click += (_, _) => { _map.Zoom = Math.Max(0.75f, _map.Zoom - 0.25f); UpdateZoomLabel(); _map.Invalidate(); };
-        btnZoomIn.Click += (_, _) => { _map.Zoom = Math.Min(4.5f, _map.Zoom + 0.25f); UpdateZoomLabel(); _map.Invalidate(); };
-        btnZoomReset.Click += (_, _) => { _map.Zoom = 1.0f; UpdateZoomLabel(); _map.Invalidate(); };
-        _map.MouseWheel += (_, e) =>
+        var btnFollow = new Button
         {
-            float step = e.Delta > 0 ? 0.25f : -0.25f;
-            _map.Zoom = Math.Clamp(_map.Zoom + step, 0.75f, 4.5f);
-            UpdateZoomLabel();
+            Text = "",
+            Location = new Point(0, 38),
+            Size = new Size(38, 38),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.Transparent,
+            Cursor = Cursors.Hand
+        };
+        btnFollow.FlatAppearance.BorderSize = 0;
+        btnFollow.FlatAppearance.MouseOverBackColor = Color.FromArgb(52, 46, 36);
+
+        var btnZoomOut = new Button
+        {
+            Text = "",
+            Location = new Point(0, 76),
+            Size = new Size(38, 38),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.Transparent,
+            Cursor = Cursors.Hand
+        };
+        btnZoomOut.FlatAppearance.BorderSize = 0;
+        btnZoomOut.FlatAppearance.MouseOverBackColor = Color.FromArgb(52, 46, 36);
+
+        btnZoomIn.Paint += (_, e) =>
+        {
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using var pen = new Pen(Theme.Gold, 2.4f);
+            e.Graphics.DrawLine(pen, 12, 19, 26, 19);
+            e.Graphics.DrawLine(pen, 19, 12, 19, 26);
+        };
+
+        btnFollow.Paint += (_, e) =>
+        {
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            Color c = _map.FollowLink ? Theme.Gold : Color.FromArgb(145, 138, 124);
+            using var pen = new Pen(c, 1.8f);
+            using var dot = new SolidBrush(c);
+            e.Graphics.DrawEllipse(pen, 11, 11, 16, 16);
+            e.Graphics.FillEllipse(dot, 16.5f, 16.5f, 5f, 5f);
+            e.Graphics.DrawLine(pen, 19, 7, 19, 11);
+            e.Graphics.DrawLine(pen, 19, 27, 19, 31);
+            e.Graphics.DrawLine(pen, 7, 19, 11, 19);
+            e.Graphics.DrawLine(pen, 27, 19, 31, 19);
+        };
+
+        btnZoomOut.Paint += (_, e) =>
+        {
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using var pen = new Pen(Theme.Gold, 2.4f);
+            e.Graphics.DrawLine(pen, 12, 19, 26, 19);
+        };
+
+        zoomOverlay.Paint += (_, e) =>
+        {
+            using var border = new Pen(Color.FromArgb(155, 128, 76), 1.3f);
+            e.Graphics.DrawRectangle(border, 0, 0, zoomOverlay.Width - 1, zoomOverlay.Height - 1);
+            e.Graphics.DrawLine(border, 4, 38, zoomOverlay.Width - 5, 38);
+            e.Graphics.DrawLine(border, 4, 76, zoomOverlay.Width - 5, 76);
+        };
+
+        btnZoomIn.Click += (_, _) =>
+        {
+            _map.Zoom = Math.Min(4.5f, _map.Zoom + 0.35f);
             _map.Invalidate();
         };
-        _hudFollowLink.CheckedChanged += (_, _) => { _map.FollowLink = _hudFollowLink.Checked; _map.Invalidate(); };
 
-        zoomRow.Controls.Add(_hudFollowLink);
-        zoomRow.Controls.Add(btnZoomOut);
-        zoomRow.Controls.Add(_hudZoomLabel);
-        zoomRow.Controls.Add(btnZoomIn);
-        zoomRow.Controls.Add(btnZoomReset);
-        zoomOverlay.Controls.Add(zoomRow);
+        btnFollow.Click += (_, _) =>
+        {
+            _map.FollowLink = !_map.FollowLink;
+            if (_map.FollowLink) _map.PanOffset = PointF.Empty;
+            btnFollow.Invalidate();
+            _map.Invalidate();
+        };
+
+        btnZoomOut.Click += (_, _) =>
+        {
+            _map.Zoom = Math.Max(0.75f, _map.Zoom - 0.35f);
+            _map.Invalidate();
+        };
+
+        _map.ViewChanged += () => btnFollow.Invalidate();
+
+        zoomOverlay.Controls.Add(btnZoomIn);
+        zoomOverlay.Controls.Add(btnFollow);
+        zoomOverlay.Controls.Add(btnZoomOut);
 
         mapHost.Resize += (_, _) =>
         {
-            zoomOverlay.Location = new Point(Math.Max(12, mapHost.ClientSize.Width - zoomOverlay.Width - 16), Math.Max(12, mapHost.ClientSize.Height - zoomOverlay.Height - 16));
+            zoomOverlay.Location = new Point(Math.Max(12, mapHost.ClientSize.Width - zoomOverlay.Width - 18), Math.Max(12, mapHost.ClientSize.Height - zoomOverlay.Height - 18));
         };
-
         mapHost.Controls.Add(hudOverlay);
         mapHost.Controls.Add(_detailCard);
         mapHost.Controls.Add(zoomOverlay);
@@ -1352,8 +1403,8 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         {
             base.OnMouseWheel(e);
             float step = e.Delta > 0 ? 0.25f : -0.25f;
-            Zoom = Math.Clamp(Zoom + step, 1.0f, 4.5f);
-            if (Zoom <= 1.01f) { Zoom = 1.0f; PanOffset = PointF.Empty; }
+            Zoom = Math.Clamp(Zoom + step, 0.75f, 4.5f);
+            if (Math.Abs(Zoom - 1.0f) < 0.05f) { Zoom = 1.0f; }
             ViewChanged?.Invoke();
             Invalidate();
         }
@@ -1361,7 +1412,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            if (e.Button == MouseButtons.Left && Zoom > 1.0f)
+            if (e.Button == MouseButtons.Left)
             {
                 _dragStart = e.Location;
                 _dragOrigin = PanOffset;
@@ -1504,7 +1555,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
             float offsetX = PanOffset.X;
             float offsetY = PanOffset.Y;
 
-            if (FollowLink && LinkPosition is { } lp && Zoom > 1.0f)
+            if (FollowLink && LinkPosition is { } lp)
             {
                 pivotX = BaseX(lp.X);
                 pivotY = BaseZ(lp.Z);
@@ -1763,6 +1814,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
