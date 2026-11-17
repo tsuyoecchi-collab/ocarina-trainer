@@ -677,7 +677,9 @@ public sealed class CollectiblesPage : TrainerPage
             _detailList.Controls.Add(rowTable);
         }
 
-        _detailList.ResumeLayout(false);
+        _detailList.AutoScrollPosition = Point.Empty;
+        _detailList.ResumeLayout(true);
+        _detailCard.PerformLayout();
         _detailCard.Visible = true;
         _detailCard.BringToFront();
     }
@@ -1626,6 +1628,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
