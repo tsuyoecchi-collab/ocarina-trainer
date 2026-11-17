@@ -82,6 +82,7 @@ public sealed class CollectiblesPage : TrainerPage
     private readonly Label _count = Ui.Hint("");
     private readonly Label _liveCount = Ui.Hint("");
     private readonly Label _hudZoneTitle = new() { AutoSize = true, ForeColor = Color.FromArgb(236, 224, 198), Font = new Font("Georgia", 15f, FontStyle.Bold), BackColor = Color.Transparent };
+    private readonly System.Windows.Forms.Timer _linkSmoothTimer = new() { Interval = 16 };
     private readonly CheckBox _hudFollowLink = new() { Text = "Seguir a Link", AutoSize = true, ForeColor = Color.FromArgb(236, 224, 198), Font = Theme.Small, BackColor = Color.Transparent, Margin = new Padding(4, 5, 8, 0), Cursor = Cursors.Hand };
     private readonly Label _hudZoomLabel = new() { Text = "1.0x", AutoSize = true, ForeColor = Theme.Gold, Font = Theme.UiBold, BackColor = Color.Transparent, Margin = new Padding(6, 5, 6, 0) };
     private readonly CheckBox _hudOnlyMissing = new() { Text = "Solo pendientes", AutoSize = true, ForeColor = Color.FromArgb(215, 205, 185), Font = Theme.Small, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, 6), Cursor = Cursors.Hand };
@@ -276,7 +277,8 @@ public sealed class CollectiblesPage : TrainerPage
         btnZoomIn.Paint += (_, e) =>
         {
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using var pen = new Pen(Theme.Gold, 2.4f);
+            Color c = btnZoomIn.Enabled ? Theme.Gold : Color.FromArgb(90, 84, 72);
+            using var pen = new Pen(c, 2.4f);
             e.Graphics.DrawLine(pen, 12, 19, 26, 19);
             e.Graphics.DrawLine(pen, 19, 12, 19, 26);
         };
@@ -298,7 +300,8 @@ public sealed class CollectiblesPage : TrainerPage
         btnZoomOut.Paint += (_, e) =>
         {
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using var pen = new Pen(Theme.Gold, 2.4f);
+            Color c = btnZoomOut.Enabled ? Theme.Gold : Color.FromArgb(90, 84, 72);
+            using var pen = new Pen(c, 2.4f);
             e.Graphics.DrawLine(pen, 12, 19, 26, 19);
         };
 
@@ -310,9 +313,19 @@ public sealed class CollectiblesPage : TrainerPage
             e.Graphics.DrawLine(border, 4, 76, zoomOverlay.Width - 5, 76);
         };
 
+        void SyncZoomButtons()
+        {
+            btnZoomIn.Enabled = _map.Zoom < 4.49f;
+            btnZoomOut.Enabled = _map.Zoom > 0.76f;
+            btnZoomIn.Invalidate();
+            btnZoomOut.Invalidate();
+            btnFollow.Invalidate();
+        }
+
         btnZoomIn.Click += (_, _) =>
         {
             _map.Zoom = Math.Min(4.5f, _map.Zoom + 0.35f);
+            SyncZoomButtons();
             _map.Invalidate();
         };
 
@@ -320,17 +333,19 @@ public sealed class CollectiblesPage : TrainerPage
         {
             _map.FollowLink = !_map.FollowLink;
             if (_map.FollowLink) _map.PanOffset = PointF.Empty;
-            btnFollow.Invalidate();
+            SyncZoomButtons();
             _map.Invalidate();
         };
 
         btnZoomOut.Click += (_, _) =>
         {
             _map.Zoom = Math.Max(0.75f, _map.Zoom - 0.35f);
+            SyncZoomButtons();
             _map.Invalidate();
         };
 
-        _map.ViewChanged += () => btnFollow.Invalidate();
+        _map.ViewChanged += SyncZoomButtons;
+        SyncZoomButtons();
 
         zoomOverlay.Controls.Add(btnZoomIn);
         zoomOverlay.Controls.Add(btnFollow);
@@ -347,6 +362,19 @@ public sealed class CollectiblesPage : TrainerPage
         hudOverlay.BringToFront();
         _detailCard.BringToFront();
         zoomOverlay.BringToFront();
+
+        _linkSmoothTimer.Tick += (_, _) =>
+        {
+            if (!Visible || _tabs.SelectedIndex != 0 || Host.Memory is not { } mem) return;
+            var pos = ReadLinkPosition(mem);
+            if (pos is not null)
+            {
+                _map.LinkPosition = pos;
+                _map.LinkAngle = ReadLinkAngle(mem);
+                _map.Invalidate();
+            }
+        };
+        _linkSmoothTimer.Start();
 
         layout.Controls.Add(mapHost, 0, 1);
         page.Controls.Add(layout);
@@ -1814,6 +1842,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
