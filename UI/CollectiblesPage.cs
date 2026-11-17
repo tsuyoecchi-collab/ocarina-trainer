@@ -68,7 +68,7 @@ public sealed class CollectiblesPage : TrainerPage
     private const string LinkPosSpecX = "0x7004E371D0,0x480,0x31C";
     private const string LinkPosSpecY = "0x7004E371D0,0x480,0x320";
     private const string LinkPosSpecZ = "0x7004E371D0,0x480,0x324";
-    private string? _lastAutoFloor;
+    private string? _lastAutoFloor; private (float X, float Y, float Z)? _manualFloorLockPos; private (float X, float Y, float Z)? _latestLinkPos3D;
     private string? _lastAutoState;
     private const uint AgeHash = 0xcea220d3; // true = NiÃ±o, false = Adulto
 
@@ -181,7 +181,12 @@ public sealed class CollectiblesPage : TrainerPage
         };
         _map.FloorSlotClicked += idx =>
         {
-            if (idx >= 0 && idx < _floor.Items.Count) { _lastAutoFloor = "MANUAL"; _floor.SelectedIndex = idx; }
+            if (idx >= 0 && idx < _floor.Items.Count)
+            {
+                _lastAutoFloor = "MANUAL";
+                _manualFloorLockPos = _latestLinkPos3D ?? (0f, 0f, 0f);
+                _floor.SelectedIndex = idx;
+            }
         };
         rightControls.Controls.Add(_floor);
         topBar.Controls.Add(header);
@@ -995,8 +1000,8 @@ public sealed class CollectiblesPage : TrainerPage
 
         string? previousBanc = _currentBanc;
         _currentBanc = string.IsNullOrEmpty(mapName) ? null : mapName;
-        if (previousBanc != _currentBanc) { _lastAutoFloor = null; _lastAutoState = null; }
-        if (previousBanc != _currentBanc) { _lastAutoFloor = null; _lastAutoState = null; }
+        if (previousBanc != _currentBanc) { _lastAutoFloor = null; _lastAutoState = null; _manualFloorLockPos = null; }
+        if (previousBanc != _currentBanc) { _lastAutoFloor = null; _lastAutoState = null; _manualFloorLockPos = null; }
         if (previousBanc != _currentBanc)
         {
             _lastAutoFloor = null;
@@ -1997,6 +2002,8 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
+
 
 
 
