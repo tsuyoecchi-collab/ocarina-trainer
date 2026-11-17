@@ -1249,8 +1249,25 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         if (paths.Count > 0) _floor.SelectedIndex = 0;
         _updatingFloors = false;
 
+        _map.FloorSlots = BuildFloorSlots(paths);
+        _map.ViewingFloorIndex = _floor.SelectedIndex;
         _map.TextureOverride = paths.Count > 0 ? paths[0] : null;
         _map.ReloadMap();
+    }
+
+    private static List<(int FloorIndex, string Tag, string DisplayLabel)> BuildFloorSlots(List<string> paths)
+    {
+        static string ToEs(string t) => t.ToUpperInvariant() switch { "7F"=>"P6","6F"=>"P5","5F"=>"P4","4F"=>"P3","3F"=>"P2","2F"=>"P1","1F"=>"PB","B1"=>"S1","B2"=>"S2","B3"=>"S3","B4"=>"S4",_=>t };
+        static int Rank(string t) => t.ToUpperInvariant() switch { "7F"=>70,"6F"=>60,"5F"=>50,"4F"=>40,"3F"=>30,"2F"=>20,"1F"=>10,"B1"=>-10,"B2"=>-20,"B3"=>-30,"B4"=>-40,_=>-999 };
+        var res = new List<(int, string, string)>();
+        string[] tags = { "7F","6F","5F","4F","3F","2F","1F","B1","B2","B3","B4" };
+        for (int i = 0; i < paths.Count; i++)
+        {
+            string fn = Path.GetFileNameWithoutExtension(paths[i]);
+            string? m = tags.FirstOrDefault(t => fn.Contains("_"+t+"_", StringComparison.OrdinalIgnoreCase) || fn.EndsWith("_"+t, StringComparison.OrdinalIgnoreCase));
+            if (m is not null) res.Add((i, m, ToEs(m)));
+        }
+        return res.OrderByDescending(x => Rank(x.Item2)).ToList();
     }
 
     private static string FloorLabel(string path, string bancName)
@@ -1705,7 +1722,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
             float offsetX = PanOffset.X;
             float offsetY = PanOffset.Y;
 
-            if (FollowLink && LinkPosition is { } lp)
+            if (FollowLink && Zoom > 1.05f && LinkPosition is { } lp)
             {
                 pivotX = BaseX(lp.X);
                 pivotY = BaseZ(lp.Z);
@@ -1980,6 +1997,8 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
+
 
 
 
