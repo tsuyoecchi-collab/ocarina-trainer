@@ -1134,7 +1134,7 @@ public sealed class CollectiblesPage : TrainerPage
         if (string.IsNullOrEmpty(banc) || y is not { } py) return null;
         string b = banc.Replace("_Child", "").Replace("_Adult", "");
         if (b.Equals("InsideTheDekuTree", StringComparison.OrdinalIgnoreCase))
-            return py >= 119.5f ? "3F" : py >= 108.5f ? "2F" : py >= 97.5f ? "1F" : py >= 86.5f ? "B1" : "B2";
+            return py >= 117.5f ? "3F" : py >= 106.5f ? "2F" : py >= 95.5f ? "1F" : py >= 84.5f ? "B1" : "B2";
         if (b.Equals("DodongoCavern", StringComparison.OrdinalIgnoreCase))
             return py >= 108f ? "2F" : "1F";
         if (b.Equals("InsideJabuJabuBelly", StringComparison.OrdinalIgnoreCase))
@@ -1874,6 +1874,7 @@ private static bool ReadEstadoCached(Dictionary<string, string> estados, Collect
         }
     }
 }
+
 
 
 
